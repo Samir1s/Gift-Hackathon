@@ -1,77 +1,55 @@
-import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Navigation } from 'lucide-react';
+import Waves from '@/components/ui/waves';
+import Separator from '@/components/onboarding/Separator';
 
 const OnboardHero = () => {
-    const ref = useRef(null);
-    const navigate = useNavigate();
-    const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-    const y = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
-    const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
     return (
-        <section ref={ref} className="relative min-h-screen flex items-center overflow-hidden">
-            {/* Background Gradient Orbs */}
-            <motion.div style={{ y }} className="absolute inset-0 z-0">
-                <div className="absolute top-1/4 left-1/4 w-[700px] h-[700px] rounded-full bg-[#7B3FE4]/10 blur-[150px]" />
-                <div className="absolute bottom-1/3 right-1/3 w-[500px] h-[500px] rounded-full bg-[#9B6DFF]/8 blur-[120px]" />
-                <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] rounded-full bg-[#6C7CFF]/6 blur-[100px]" />
-            </motion.div>
+        <section className="relative flex flex-col min-h-[calc(100svh-80px)] bg-background overflow-hidden selection:bg-white selection:text-background">
 
-            <motion.div style={{ opacity }} className="relative z-10 max-w-5xl mx-auto px-6 py-32">
-                {/* Badge */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7B3FE4]/10 border border-[#7B3FE4]/20 text-[#9B6DFF] text-sm font-medium mb-8"
-                >
-                    <Sparkles className="w-4 h-4" />
-                    AI-Powered Finance Education
-                </motion.div>
+            {/* Top Area: Waves Component */}
+            <div className="relative flex-1 w-full z-0 overflow-hidden">
+                <Waves
+                    lineColor="rgba(255, 255, 255, 0.4)"
+                    backgroundColor="transparent"
+                    waveSpeedX={0.0125}
+                    waveSpeedY={0.01}
+                    waveAmpX={40}
+                    waveAmpY={20}
+                    friction={0.9}
+                    tension={0.01}
+                    maxCursorMove={120}
+                    xGap={12}
+                    yGap={36}
+                />
+            </div>
 
-                {/* Headline */}
-                <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-6xl md:text-8xl font-bold font-[var(--font-outfit)] leading-[0.95] tracking-tight mb-8"
-                >
-                    <span className="text-white">Master </span>
-                    <span className="font-[var(--font-aesthetic)] italic font-light text-gradient-purple">trading</span>
-                    <br />
-                    <span className="text-gradient">with every lesson</span>
-                </motion.h1>
+            {/* Bottom Content Area: Exactly like SHero.astro */}
+            <div className="relative w-full z-10 flex flex-col bg-background">
 
-                {/* Subtitle */}
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-lg text-[#A8B0C3] max-w-xl leading-relaxed mb-10"
-                >
-                    Learn trading strategies, practice with simulated markets,
-                    and track your portfolio — all powered by AI intelligence.
-                </motion.p>
+                {/* Top Separator */}
+                <Separator strings={["SYSTEM", "ONLINE", "AWAITING", "INPUT", "010101", "110010"]} />
 
-                {/* CTAs */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="flex gap-4"
-                >
-                    <Button onClick={() => navigate('/login')} size="lg"
-                        className="gradient-primary text-white font-semibold shadow-[0_4px_20px_rgba(123,63,228,0.3)] hover:shadow-[0_4px_30px_rgba(123,63,228,0.5)] btn-press">
-                        Get Started <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                    <Button variant="secondary" size="lg" className="btn-press">
-                        Explore Features
-                    </Button>
-                </motion.div>
-            </motion.div>
+                {/* Massive Typographic Banner Sandbox */}
+                <div className="py-6 md:py-8 overflow-hidden bg-background flex justify-start md:justify-center border-b border-t-0 border-white">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 50, clipPath: "polygon(0 0, 100% 0, 100% 0, 0 0)" }}
+                        animate={{ opacity: 1, y: 0, clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+                        transition={{ duration: 1, ease: [0.19, 1, 0.22, 1] }}
+                        className="flex flex-row items-center justify-start md:justify-center gap-4 md:gap-x-12 px-8 text-[14vw] md:text-[12vw] xl:text-[10vw] leading-[0.8] font-bold text-white font-display uppercase tracking-tight m-0 select-none whitespace-nowrap"
+                    >
+                        <span>MASTER</span>
+                        <Navigation className="w-[10vw] h-[10vw] md:w-[6vw] md:h-[6vw] xl:w-[4vw] xl:h-[4vw] text-background fill-white rotate-45 shrink-0 border border-white p-2 md:p-3 xl:p-4 rounded-full" strokeWidth={1} />
+                        <span>TRADING</span>
+                    </motion.h1>
+                </div>
+
+                {/* Bottom Separator */}
+                <Separator strings={["DO", "THINGS", "YOUR", "WAY", "MASTER", "THE", "MARKETS"]} />
+
+            </div>
+
         </section>
     );
 };

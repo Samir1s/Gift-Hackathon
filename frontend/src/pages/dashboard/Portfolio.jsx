@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, Download, Brain, Loader2 } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from 'recharts';
-import { Button } from '@/components/ui/button';
 import { getPortfolio, getPortfolioAIReview } from '@/lib/api';
 
 const fallbackHoldings = [
@@ -15,10 +14,10 @@ const fallbackHoldings = [
 ];
 
 const fallbackAllocation = [
-    { name: 'Stocks', value: 42, color: '#7B3FE4' },
-    { name: 'Crypto', value: 24, color: '#6C7CFF' },
-    { name: 'ETFs', value: 20, color: '#00E0A4' },
-    { name: 'Commodities', value: 14, color: '#FFC857' },
+    { name: 'Stocks', value: 42, color: '#ffffff' },
+    { name: 'Crypto', value: 24, color: '#bbbbbb' },
+    { name: 'ETFs', value: 20, color: '#888888' },
+    { name: 'Commodities', value: 14, color: '#555555' },
 ];
 
 const fallbackPerformance = [
@@ -27,16 +26,10 @@ const fallbackPerformance = [
 ];
 
 const fallbackAIReview = [
-    { title: "Diversification: Good", description: "Your portfolio spans 4 asset classes with reasonable distribution. Consider adding fixed income for stability.", color: "green" },
-    { title: "Risk: Moderate", description: "24% crypto allocation adds volatility. Your Sharpe ratio of 1.4 is healthy but could improve with rebalancing.", color: "yellow" },
-    { title: "Suggestion", description: "Consider taking partial profits on BTC (+44% gain) and reallocating to index ETFs to reduce individual asset risk.", color: "purple" },
+    { title: "Diversification: Good", description: "Your portfolio spans 4 asset classes with reasonable distribution. Consider adding fixed income for stability." },
+    { title: "Risk: Moderate", description: "24% crypto allocation adds volatility. Your Sharpe ratio of 1.4 is healthy but could improve with rebalancing." },
+    { title: "Suggestion: Take Profits", description: "Consider taking partial profits on BTC (+44% gain) and reallocating to index ETFs to reduce individual asset risk." },
 ];
-
-const reviewColors = {
-    green: { bg: 'bg-[#00E0A4]/5', border: 'border-[#00E0A4]/15', title: 'text-[#00E0A4]' },
-    yellow: { bg: 'bg-[#FFC857]/5', border: 'border-[#FFC857]/15', title: 'text-[#FFC857]' },
-    purple: { bg: 'bg-[#7B3FE4]/5', border: 'border-[#7B3FE4]/15', title: 'text-[#9B6DFF]' },
-};
 
 const Portfolio = () => {
     const [portfolioValue, setPortfolioValue] = useState(1247830);
@@ -72,100 +65,122 @@ const Portfolio = () => {
     const totalPnlPct = portfolioValue ? ((totalPnl / (portfolioValue - totalPnl)) * 100).toFixed(2) : '0';
 
     return (
-        <div className="space-y-6 overflow-y-auto h-[calc(100vh-112px)] pr-2">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col h-[calc(100vh-80px)] border-t border-white border-l-0 overflow-y-auto no-scrollbar bg-background text-white">
+            <div className="p-8 border-b border-white flex items-center justify-between shrink-0">
                 <div>
-                    <h1 className="text-3xl font-bold text-white font-[var(--font-outfit)] mb-1">Portfolio</h1>
-                    <p className="text-[#A8B0C3] text-sm">Track your virtual portfolio performance</p>
+                    <h1 className="text-4xl md:text-6xl font-bold font-display uppercase tracking-tight mb-2 leading-none">Portfolio</h1>
+                    <p className="text-white/70 font-mono text-sm uppercase tracking-widest leading-relaxed">Track your virtual portfolio performance</p>
                 </div>
-                <Button variant="secondary" className="text-[#A8B0C3]">
-                    <Download className="w-4 h-4 mr-2" /> Export
-                </Button>
+                <button className="px-6 py-3 border border-white font-mono font-bold uppercase tracking-widest text-sm hover:bg-white hover:text-background transition-brutal flex items-center gap-2">
+                    <Download className="w-4 h-4" /> Export
+                </button>
             </div>
 
             {/* Metric Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border-b border-white shrink-0">
                 {[
-                    { label: 'Total Value', value: `₹${portfolioValue.toLocaleString('en-IN')}`, icon: DollarSign, color: 'text-white', gradientOverlay: 'from-[#7B3FE4]/5 to-transparent' },
-                    { label: 'Daily P&L', value: `${dailyPnl >= 0 ? '+' : ''}₹${Math.abs(dailyPnl).toLocaleString('en-IN')}`, icon: TrendingUp, color: dailyPnl >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]', badge: `${dailyPnl >= 0 ? '+' : ''}${dailyPnlPct}%`, gradientOverlay: dailyPnl >= 0 ? 'from-[#00E0A4]/5 to-transparent' : 'from-[#FF4D6D]/5 to-transparent' },
-                    { label: 'Total P&L', value: `${totalPnl >= 0 ? '+' : ''}₹${Math.abs(totalPnl).toLocaleString('en-IN')}`, icon: ArrowUpRight, color: totalPnl >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]', badge: `${totalPnl >= 0 ? '+' : ''}${totalPnlPct}%`, gradientOverlay: totalPnl >= 0 ? 'from-[#00E0A4]/5 to-transparent' : 'from-[#FF4D6D]/5 to-transparent' },
-                    { label: 'Win Rate', value: `${winRate}%`, icon: PieChart, color: 'text-[#9B6DFF]', gradientOverlay: 'from-[#9B6DFF]/5 to-transparent' },
+                    { label: 'Total Value', value: `₹${portfolioValue.toLocaleString('en-IN')}`, icon: DollarSign },
+                    { label: 'Daily P&L', value: `${dailyPnl >= 0 ? '+' : ''}₹${Math.abs(dailyPnl).toLocaleString('en-IN')}`, icon: TrendingUp, badge: `${dailyPnl >= 0 ? '+' : ''}${dailyPnlPct}%` },
+                    { label: 'Total P&L', value: `${totalPnl >= 0 ? '+' : ''}₹${Math.abs(totalPnl).toLocaleString('en-IN')}`, icon: ArrowUpRight, badge: `${totalPnl >= 0 ? '+' : ''}${totalPnlPct}%` },
+                    { label: 'Win Rate', value: `${winRate}%`, icon: PieChart },
                 ].map((card, i) => (
                     <motion.div
                         key={i}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
-                        className={`p-5 rounded-2xl border border-white/[0.06] bg-[#151824] bg-gradient-to-br ${card.gradientOverlay} hover:translate-y-[-2px] hover:border-[#7B3FE4]/20 hover:shadow-[0_8px_30px_rgba(123,63,228,0.08)] transition-all duration-200`}
+                        className="p-8 border-b md:border-b-0 md:border-r border-white last:border-r-0 transition-brutal"
                     >
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-[#6B7280]">{card.label}</span>
-                            <card.icon className={`w-4 h-4 ${card.color}`} />
+                        <div className="flex items-center justify-between mb-8">
+                            <span className="text-xs font-mono font-bold uppercase tracking-widest text-white/50">{card.label}</span>
+                            <card.icon className="w-6 h-6" />
                         </div>
-                        <p className={`text-xl font-bold font-[var(--font-outfit)] tabular-nums ${card.color}`}>{card.value}</p>
-                        {card.badge && <span className={`text-xs font-medium tabular-nums ${card.color}`}>{card.badge}</span>}
+                        <p className="text-4xl font-mono font-bold uppercase tracking-tight tabular-nums mb-2">{card.value}</p>
+                        {card.badge && <span className={`text-xs font-mono font-bold uppercase tracking-widest border border-current px-2 py-1 inline-block`}>{card.badge}</span>}
                     </motion.div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 border-b border-white shrink-0">
                 {/* Performance Chart */}
-                <div className="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-[#151824] p-6">
-                    <h2 className="text-lg font-bold text-white font-[var(--font-outfit)] mb-4">Portfolio Performance</h2>
-                    <ResponsiveContainer width="100%" height={250}>
-                        <AreaChart data={performanceData}>
-                            <defs>
-                                <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#7B3FE4" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#7B3FE4" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                            <XAxis dataKey="month" stroke="#6B7280" fontSize={12} />
-                            <YAxis stroke="#6B7280" fontSize={12} tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`} />
-                            <Tooltip contentStyle={{ background: '#1C1F2E', border: '1px solid rgba(123,63,228,0.2)', borderRadius: '12px', color: 'white', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }} formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
-                            <Area type="monotone" dataKey="value" stroke="#9B6DFF" fill="url(#perfGradient)" strokeWidth={2} />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                <div className="lg:col-span-2 border-b lg:border-b-0 lg:border-r border-white p-8 transition-brutal">
+                    <h2 className="text-2xl font-bold font-display uppercase tracking-widest mb-8">Portfolio Performance</h2>
+                    <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={performanceData}>
+                                <defs>
+                                    <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#7B3FE4" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#7B3FE4" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                                <XAxis dataKey="month" stroke="#6B7280" fontSize={12} axisLine={false} tickLine={false} />
+                                <YAxis stroke="#6B7280" fontSize={12} tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`} axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ background: '#1C1F2E', border: '1px solid rgba(123,63,228,0.2)', borderRadius: '12px', color: 'white', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }} formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
+                                <Area type="monotone" dataKey="value" stroke="#9B6DFF" fill="url(#perfGradient)" strokeWidth={2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
 
                 {/* Allocation */}
-                <div className="rounded-2xl border border-white/[0.06] bg-[#151824] p-6">
-                    <h2 className="text-lg font-bold text-white font-[var(--font-outfit)] mb-4">Asset Allocation</h2>
-                    <ResponsiveContainer width="100%" height={180}>
-                        <RechartsPie>
-                            <Pie data={allocationData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
-                                {allocationData.map((entry, idx) => (
-                                    <Cell key={idx} fill={entry.color} />
-                                ))}
-                            </Pie>
-                        </RechartsPie>
-                    </ResponsiveContainer>
-                    <div className="space-y-2 mt-4">
+                <div className="p-8">
+                    <h2 className="text-2xl font-bold font-display uppercase tracking-widest mb-8">Asset Allocation</h2>
+                    <div className="h-40 w-full mb-8">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPie>
+                                <Pie data={allocationData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
+                                    {allocationData.map((entry, idx) => {
+                                        const colors = ['#7B3FE4', '#00E0A4', '#FFC857', '#FF4D6D'];
+                                        return <Cell key={idx} fill={colors[idx % colors.length]} />;
+                                    })}
+                                </Pie>
+                            </RechartsPie>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-4">
                         {allocationData.map((item) => (
                             <div key={item.name} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="text-sm text-[#A8B0C3]">{item.name}</span>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-4 h-4 border border-white" style={{ backgroundColor: item.color }} />
+                                    <span className="text-xs font-mono font-bold uppercase tracking-widest">{item.name}</span>
                                 </div>
-                                <span className="text-sm font-medium text-white tabular-nums">{item.value}%</span>
+                                <span className="text-sm font-mono font-bold tabular-nums">{item.value}%</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Holdings Table */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#151824] overflow-hidden">
-                <div className="p-5 border-b border-white/[0.06]">
-                    <h2 className="text-lg font-bold text-white font-[var(--font-outfit)]">Holdings</h2>
+            <div className="flex flex-col lg:flex-row gap-0">
+                {/* AI Review */}
+                <div className="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-white p-8 shrink-0 flex flex-col">
+                    <div className="flex items-center gap-4 mb-8">
+                        <Brain className="w-8 h-8 text-white" />
+                        <h2 className="text-2xl font-bold font-display uppercase tracking-widest">AI Review</h2>
+                        {loadingAI && <Loader2 className="w-5 h-5 animate-spin ml-2" />}
+                    </div>
+                    <div className="space-y-6 flex-1">
+                        {aiReview.map((item, i) => (
+                            <div key={i} className="p-6 border border-white transition-brutal">
+                                <h3 className="text-sm font-mono font-bold uppercase tracking-widest mb-3 leading-tight">{item.title}</h3>
+                                <p className="text-sm font-serif leading-relaxed text-white/80">{item.description}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full">
+
+                {/* Holdings Table */}
+                <div className="flex-1 shrink-0 bg-background overflow-x-auto no-scrollbar">
+                    <div className="p-8 border-b border-white">
+                        <h2 className="text-2xl font-bold font-display uppercase tracking-widest">Holdings Details</h2>
+                    </div>
+                    <table className="w-full min-w-max">
                         <thead>
-                            <tr className="border-b border-white/[0.06]">
+                            <tr className="border-b border-white">
                                 {['Asset', 'Quantity', 'Avg Price', 'Current', 'P&L', 'Day Change'].map((h) => (
-                                    <th key={h} className="text-left px-5 py-3 text-xs font-medium text-[#6B7280] uppercase tracking-wider">{h}</th>
+                                    <th key={h} className="text-left px-8 py-6 text-xs font-mono font-bold text-white/50 uppercase tracking-widest">{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -179,23 +194,24 @@ const Portfolio = () => {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: i * 0.03 }}
-                                        className="border-b border-white/[0.03] hover:bg-[#1C1F2E] transition-colors"
+                                        className="border-b border-white transition-colors cursor-default"
                                     >
-                                        <td className="px-5 py-4">
-                                            <p className="text-sm font-medium text-white">{h.name}</p>
-                                            <p className="text-xs text-[#6B7280]">{h.ticker}</p>
+                                        <td className="px-8 py-6">
+                                            <p className="text-lg font-bold font-serif leading-none mb-1">{h.name}</p>
+                                            <p className="text-xs font-mono uppercase tracking-widest">{h.ticker}</p>
                                         </td>
-                                        <td className="px-5 py-4 text-sm text-[#A8B0C3] tabular-nums">{h.qty}</td>
-                                        <td className="px-5 py-4 text-sm text-[#A8B0C3] tabular-nums">₹{h.avgPrice.toLocaleString()}</td>
-                                        <td className="px-5 py-4 text-sm text-white font-medium tabular-nums">₹{h.currentPrice.toLocaleString()}</td>
-                                        <td className="px-5 py-4">
-                                            <span className={`text-sm font-medium tabular-nums ${pnl >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'}`}>
-                                                {pnl >= 0 ? '+' : ''}₹{pnl.toLocaleString()} ({pnlPct}%)
+                                        <td className="px-8 py-6 text-xl font-mono tabular-nums font-bold">{h.qty}</td>
+                                        <td className="px-8 py-6 text-sm font-mono tabular-nums text-current/80">₹{h.avgPrice.toLocaleString()}</td>
+                                        <td className="px-8 py-6 text-xl font-mono tabular-nums font-bold">₹{h.currentPrice.toLocaleString()}</td>
+                                        <td className="px-8 py-6">
+                                            <span className="text-lg font-mono tabular-nums font-bold flex flex-col">
+                                                <span>{pnl >= 0 ? '+' : ''}₹{pnl.toLocaleString()}</span>
+                                                <span className="text-xs font-mono text-current/50 mt-1 uppercase">({pnlPct}%)</span>
                                             </span>
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <span className={`flex items-center gap-1 text-sm font-medium tabular-nums ${h.dayChange >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'}`}>
-                                                {h.dayChange >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                                        <td className="px-8 py-6">
+                                            <span className="flex items-center gap-2 text-lg font-mono tabular-nums font-bold">
+                                                {h.dayChange >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                                                 {Math.abs(h.dayChange)}%
                                             </span>
                                         </td>
@@ -204,26 +220,6 @@ const Portfolio = () => {
                             })}
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            {/* AI Review */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#151824] p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Brain className="w-5 h-5 text-[#9B6DFF]" />
-                    <h2 className="text-lg font-bold text-white font-[var(--font-outfit)]">AI Portfolio Review</h2>
-                    {loadingAI && <Loader2 className="w-4 h-4 text-[#9B6DFF] animate-spin" />}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {aiReview.map((item, i) => {
-                        const style = reviewColors[item.color] || reviewColors.purple;
-                        return (
-                            <div key={i} className={`p-4 rounded-xl ${style.bg} border ${style.border}`}>
-                                <h3 className={`text-sm font-bold ${style.title} mb-2`}>{item.title}</h3>
-                                <p className="text-xs text-[#A8B0C3]">{item.description}</p>
-                            </div>
-                        );
-                    })}
                 </div>
             </div>
         </div>

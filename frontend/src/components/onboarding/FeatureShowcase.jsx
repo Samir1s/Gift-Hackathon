@@ -1,58 +1,76 @@
 import React from 'react';
-import GlowCard from '@/components/shared/GlowCard';
 import { BookOpen, Gamepad2, Newspaper, Briefcase } from 'lucide-react';
 
-const features = [
-    {
-        title: "Learn",
-        description: "AI-curated learning modules covering market analysis, trading strategies, risk management, and behavioral finance. Progress at your own pace with personalized recommendations.",
-        icon: BookOpen,
-    },
-    {
-        title: "Playgrounds",
-        description: "Practice trading in a risk-free simulated environment with ₹10,00,000 virtual currency. Execute trades, analyze results, and learn from AI-powered post-session reviews.",
-        icon: Gamepad2,
-    },
-    {
-        title: "Daily Updates",
-        description: "Stay ahead with live market-impacting news, real-time alerts, and AI-driven sentiment analysis. Filter by asset class, ticker, or impact severity.",
-        icon: Newspaper,
-    },
-    {
-        title: "Portfolio",
-        description: "Track your virtual portfolio performance with detailed analytics, asset allocation charts, transaction history, and AI-powered diversification reviews.",
-        icon: Briefcase,
-    },
+const FEATURES = [
+    { title: "Learn", detail: "Modules & Quizzes", icon: BookOpen },
+    { title: "Playgrounds", detail: "Live Simulator", icon: Gamepad2 },
+    { title: "Updates", detail: "Market News", icon: Newspaper },
+    { title: "Portfolio", detail: "AI Analytics", icon: Briefcase },
 ];
 
 const FeatureShowcase = () => {
     return (
-        <section id="features" className="py-32 bg-black relative">
-            <div className="container mx-auto px-6 max-w-7xl">
-                <div className="text-center mb-24">
-                    <div className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 mb-6">
-                        <span className="text-sm font-medium text-white tracking-wide">Everything You Need</span>
-                    </div>
-                    <h2 className="text-5xl md:text-6xl font-bold text-white font-[var(--font-outfit)] mb-6">
-                        Learn. Practice. <br />
-                        <span className="text-zinc-500">Master the markets.</span>
+        <section id="features" className="relative z-10 w-full bg-background py-32 md:py-48 lg:py-60 overflow-hidden selection:bg-white selection:text-background">
+
+            {/* The constrained inner box mirroring `.s__inner` */}
+            <div className="mx-auto w-[85vw] md:w-[70vw] lg:w-[39.25rem] border border-white flex flex-col">
+
+                {/* Block: About */}
+                <div className="flex flex-col border-b border-white">
+                    {/* Tiny header mirroring `.s__title` */}
+                    <h2 className="m-0 bg-white text-background text-[10px] md:text-xs font-mono font-bold tracking-[0.1em] uppercase text-center py-1">
+                        ABOUT
                     </h2>
-                    <p className="text-zinc-400 max-w-xl mx-auto">
-                        Four powerful modules designed to take you from finance beginner to confident trader.
-                    </p>
+
+                    {/* Content area mirroring `.s__content` */}
+                    <div className="p-8 md:p-12 lg:p-16 flex flex-col gap-8 text-[1.5rem] md:text-[2rem] font-serif font-light text-white leading-[1.3] md:leading-[1.4]">
+                        <p>
+                            Learn elite strategies, practice with simulated markets, and dominate your portfolio — all orchestrated by artificial intelligence.
+                        </p>
+                        <p>
+                            Curiosity and the drive to learn are the most valuable skills for any trader.
+                            That hunger to understand how markets work, to find clever strategies,
+                            and to constantly push boundaries—that’s what makes this craft so rewarding.
+                        </p>
+                        <p>
+                            We built TradeQuest to share the knowledge behind successful trading.
+                            If you’re a beginner, we hope it helps you learn faster, trade smarter,
+                            and gain confidence in your own journey before risking real capital.
+                        </p>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {features.map((feature, i) => (
-                        <GlowCard
-                            key={i}
-                            title={feature.title}
-                            description={feature.description}
-                            icon={feature.icon}
-                            className="h-[280px]"
-                        />
-                    ))}
+                {/* Block: Features */}
+                <div className="flex flex-col">
+                    <h2 className="m-0 bg-white text-background text-[10px] md:text-xs font-mono font-bold tracking-[0.1em] uppercase text-center py-1 border-b border-white">
+                        FEATURES
+                    </h2>
+
+                    <div className="grid grid-cols-2 divide-x divide-y divide-white border-b-0 border-white">
+                        {FEATURES.map((feat, index) => (
+                            <div
+                                key={index}
+                                className="group relative aspect-square flex flex-col justify-between p-6 md:p-8 hover:bg-white transition-colors duration-200 cursor-default border-t border-white"
+                            >
+                                <div className="flex justify-between items-start w-full">
+                                    <span className="text-[10px] md:text-xs font-mono uppercase tracking-widest text-white/50 group-hover:text-background/50">
+                                        0{index + 1}
+                                    </span>
+                                    <feat.icon className="w-6 h-6 md:w-8 md:h-8 text-white group-hover:text-background transition-colors duration-200" strokeWidth={1} />
+                                </div>
+                                <div className="flex flex-col gap-1 mt-auto">
+                                    <span className="text-xl md:text-3xl font-display uppercase tracking-tight text-white group-hover:text-background transition-colors duration-200 leading-none">
+                                        {feat.title}
+                                    </span>
+                                    <span className="text-[10px] md:text-xs font-mono uppercase tracking-widest text-white/50 group-hover:text-background/50">
+                                        {feat.detail}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+
             </div>
         </section>
     );

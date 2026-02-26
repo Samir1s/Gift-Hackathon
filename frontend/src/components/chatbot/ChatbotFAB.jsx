@@ -12,7 +12,7 @@ const quickReplies = [
 ];
 
 const initialMessages = [
-    { role: 'ai', content: "Hi! I'm your TradeQuest AI assistant powered by Gemini. I can help you learn about trading, analyze your portfolio, explain market concepts, and more. What would you like to know?" },
+    { role: 'ai', content: "SYSTEM ONLINE. TradeQuest AI powered by Gemini. Query market concepts, portfolio analysis, or trading strategies." },
 ];
 
 const ChatbotFAB = () => {
@@ -45,10 +45,10 @@ const ChatbotFAB = () => {
             if (response && response.content) {
                 setMessages(prev => [...prev, { role: 'ai', content: response.content }]);
             } else {
-                setMessages(prev => [...prev, { role: 'ai', content: "I'm having trouble connecting right now. Please check that the backend server is running on port 8000." }]);
+                setMessages(prev => [...prev, { role: 'ai', content: "ERROR: Connection failed. Check port 8000." }]);
             }
         } catch (err) {
-            setMessages(prev => [...prev, { role: 'ai', content: "Connection error. Make sure the backend is running: `uvicorn app.main:app --reload`" }]);
+            setMessages(prev => [...prev, { role: 'ai', content: "FATAL ERROR: Backend offline." }]);
         } finally {
             setIsTyping(false);
         }
@@ -59,10 +59,9 @@ const ChatbotFAB = () => {
             {/* FAB */}
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full gradient-primary shadow-[0_0_30px_rgba(123,63,228,0.4)] flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-                whileHover={{ boxShadow: "0 0 40px rgba(123,63,228,0.6)" }}
+                className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-white text-background flex items-center justify-center border-t-4 border-l-4 border-r-8 border-b-8 border-transparent hover:border-white hover:bg-background hover:text-white transition-all cursor-pointer shadow-[8px_8px_0_0_#fff0eb] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
             >
-                {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+                {isOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
             </motion.button>
 
             {/* Chat Card */}
@@ -73,52 +72,41 @@ const ChatbotFAB = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed bottom-24 right-6 z-50 w-[380px] h-[520px] rounded-2xl border border-white/[0.08] bg-[#151824] shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_1px_rgba(123,63,228,0.1)] flex flex-col overflow-hidden"
+                        className="fixed bottom-28 right-6 z-50 w-[380px] h-[520px] bg-background border border-white flex flex-col overflow-hidden shadow-[12px_12px_0_0_#fff0eb]"
                     >
                         {/* Header */}
-                        <div className="px-5 py-4 border-b border-white/[0.06] bg-[#0F1117] flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shadow-[0_0_12px_rgba(123,63,228,0.3)]">
+                        <div className="px-5 py-4 border-b border-white bg-white text-background flex items-center gap-3">
+                            <div className="w-8 h-8 bg-background flex items-center justify-center">
                                 <Sparkles className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-white">TradeQuest AI</h3>
-                                <p className="text-xs text-[#00E0A4]">Powered by Gemini</p>
+                                <h3 className="text-xl font-bold font-display uppercase tracking-widest leading-none">TradeQuest AI</h3>
+                                <p className="text-[10px] font-mono font-bold uppercase tracking-widest mt-1">[ GEMINI Core ]</p>
                             </div>
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
                             {messages.map((msg, i) => (
-                                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                                    {msg.role === 'ai' && (
-                                        <div className="w-6 h-6 rounded-full bg-[#7B3FE4]/20 flex items-center justify-center shrink-0 mt-1">
-                                            <Bot className="w-3 h-3 text-[#9B6DFF]" />
-                                        </div>
-                                    )}
-                                    <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
-                                        ? 'gradient-primary text-white rounded-br-md shadow-[0_4px_12px_rgba(123,63,228,0.2)]'
-                                        : 'bg-[#1C1F2E] text-[#A8B0C3] rounded-bl-md'
+                                <motion.div key={i} initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-white/50">{msg.role === 'ai' ? 'AI_SYS' : 'USR'}</span>
+                                    </div>
+                                    <div className={`max-w-[85%] px-4 py-3 font-mono text-sm leading-relaxed border ${msg.role === 'user'
+                                        ? 'bg-white text-background border-white'
+                                        : 'bg-background text-white border-white'
                                         }`}>
                                         {msg.content}
                                     </div>
-                                    {msg.role === 'user' && (
-                                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-1">
-                                            <User className="w-3 h-3 text-white" />
-                                        </div>
-                                    )}
                                 </motion.div>
                             ))}
                             {isTyping && (
-                                <div className="flex gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-[#7B3FE4]/20 flex items-center justify-center shrink-0 mt-1">
-                                        <Bot className="w-3 h-3 text-[#9B6DFF]" />
+                                <div className="flex flex-col items-start">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-white/50">AI_SYS</span>
                                     </div>
-                                    <div className="bg-[#1C1F2E] px-4 py-3 rounded-2xl rounded-bl-md">
-                                        <div className="flex gap-1">
-                                            <span className="w-2 h-2 rounded-full bg-[#6B7280] animate-bounce" style={{ animationDelay: '0ms' }} />
-                                            <span className="w-2 h-2 rounded-full bg-[#6B7280] animate-bounce" style={{ animationDelay: '150ms' }} />
-                                            <span className="w-2 h-2 rounded-full bg-[#6B7280] animate-bounce" style={{ animationDelay: '300ms' }} />
-                                        </div>
+                                    <div className="bg-background border border-white px-4 py-3 font-mono text-sm">
+                                        PROCESSING_
                                     </div>
                                 </div>
                             )}
@@ -127,10 +115,10 @@ const ChatbotFAB = () => {
 
                         {/* Quick Replies */}
                         {messages.length <= 1 && (
-                            <div className="px-4 pb-2 flex gap-2 flex-wrap">
+                            <div className="px-4 pb-4 flex gap-2 flex-wrap">
                                 {quickReplies.map((qr, i) => (
                                     <button key={i} onClick={() => sendMessage(qr)}
-                                        className="px-3 py-1.5 text-xs rounded-full bg-[#1C1F2E] border border-white/[0.08] text-[#A8B0C3] hover:text-white hover:border-[#7B3FE4]/30 transition-all cursor-pointer">
+                                        className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest border border-white hover:bg-white hover:text-background transition-brutal cursor-pointer text-left">
                                         {qr}
                                     </button>
                                 ))}
@@ -138,14 +126,14 @@ const ChatbotFAB = () => {
                         )}
 
                         {/* Input */}
-                        <div className="p-3 border-t border-white/[0.06] bg-[#0F1117]">
+                        <div className="p-4 border-t border-white bg-background">
                             <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-2">
                                 <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Type a message..."
+                                    placeholder="ENTER COMMAND..."
                                     disabled={isTyping}
-                                    className="flex-1 h-10 px-4 rounded-xl bg-[#1C1F2E] border border-white/[0.06] text-white placeholder-[#6B7280] text-sm focus:outline-none input-glow transition-all disabled:opacity-50" />
-                                <button type="submit" disabled={isTyping} className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white shadow-[0_4px_12px_rgba(123,63,228,0.25)] hover:shadow-[0_4px_20px_rgba(123,63,228,0.4)] transition-shadow cursor-pointer disabled:opacity-50">
-                                    <Send className="w-4 h-4" />
+                                    className="flex-1 h-12 px-4 bg-background border border-white text-white font-mono text-sm focus:outline-none focus:ring-1 focus:ring-white transition-all disabled:opacity-50 uppercase placeholder-white/30" />
+                                <button type="submit" disabled={isTyping} className="w-12 h-12 bg-white flex items-center justify-center text-background hover:bg-white/90 transition-brutal cursor-pointer disabled:opacity-50 border border-white">
+                                    <Send className="w-5 h-5" />
                                 </button>
                             </form>
                         </div>

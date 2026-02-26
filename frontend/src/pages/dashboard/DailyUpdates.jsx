@@ -22,17 +22,10 @@ const fallbackAlerts = [
     { id: 4, message: "Oil crossed $85/barrel resistance", severity: "Low", time: "2 hours ago" },
 ];
 
-const impactColors = {
-    Critical: 'text-[#FF4D6D] bg-[#FF4D6D]/10 border-[#FF4D6D]/20',
-    High: 'text-[#FFC857] bg-[#FFC857]/10 border-[#FFC857]/20',
-    Medium: 'text-[#6C7CFF] bg-[#6C7CFF]/10 border-[#6C7CFF]/20',
-    Low: 'text-[#00E0A4] bg-[#00E0A4]/10 border-[#00E0A4]/20',
-};
-
 const sentimentIcons = {
-    Bullish: <TrendingUp className="w-3 h-3 text-[#00E0A4]" />,
-    Bearish: <TrendingDown className="w-3 h-3 text-[#FF4D6D]" />,
-    Neutral: <Minus className="w-3 h-3 text-[#6B7280]" />,
+    Bullish: <TrendingUp className="w-4 h-4" />,
+    Bearish: <TrendingDown className="w-4 h-4" />,
+    Neutral: <Minus className="w-4 h-4" />,
 };
 
 const DailyUpdates = () => {
@@ -48,7 +41,6 @@ const DailyUpdates = () => {
             if (data && data.length > 0) {
                 setNewsData(data);
             } else {
-                // Fall back to client-side filtering of fallback data
                 if (category === 'All') {
                     setNewsData(fallbackNews);
                 } else {
@@ -77,52 +69,54 @@ const DailyUpdates = () => {
     };
 
     return (
-        <div className="flex gap-6 h-[calc(100vh-112px)]">
+        <div className="flex flex-col lg:flex-row gap-0 h-[calc(100vh-80px)] border-t border-white border-l-0">
             {/* News Feed */}
-            <div className="flex-1 overflow-y-auto pr-2">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-white font-[var(--font-outfit)] mb-2">Daily Updates</h1>
-                    <p className="text-[#A8B0C3] text-sm">Live market-impacting news with AI analysis</p>
+            <div className="flex-1 flex flex-col overflow-hidden border-r border-white">
+                <div className="p-8 border-b border-white bg-background shrink-0">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white font-display uppercase tracking-tight mb-2 leading-none">Daily Updates</h1>
+                    <p className="text-white/70 font-mono text-sm uppercase tracking-widest">Live market-impacting news with AI analysis</p>
                 </div>
 
                 {/* Category Filters */}
-                <div className="flex gap-2 mb-6 flex-wrap">
+                <div className="flex gap-0 border-b border-white overflow-x-auto shrink-0 bg-background no-scrollbar">
                     {categories.map((cat) => (
                         <button
                             key={cat}
                             onClick={() => handleCategoryChange(cat)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer btn-press ${activeCategory === cat
-                                ? 'gradient-primary text-white shadow-[0_4px_12px_rgba(123,63,228,0.25)]'
-                                : 'bg-[#1C1F2E] text-[#A8B0C3] hover:text-white border border-white/[0.06]'
+                            className={`px-6 py-4 border-r border-white text-xs font-mono font-bold uppercase tracking-widest transition-brutal whitespace-nowrap cursor-pointer ${activeCategory === cat
+                                ? 'bg-white text-background'
+                                : 'bg-background text-white hover:bg-white hover:text-background'
                                 }`}
                         >
                             {cat}
                         </button>
                     ))}
-                    {loading && <Loader2 className="w-4 h-4 text-[#9B6DFF] animate-spin self-center ml-2" />}
+                    {loading && <div className="px-6 py-4 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>}
                 </div>
 
                 {/* News Cards */}
-                <div className="space-y-3">
+                <div className="flex-1 overflow-y-auto bg-background">
                     {newsData.map((news, i) => (
                         <motion.div
                             key={news.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.03 }}
-                            className="p-5 rounded-2xl border border-white/[0.06] bg-[#151824] hover:translate-y-[-2px] hover:border-[#7B3FE4]/20 hover:shadow-[0_8px_30px_rgba(123,63,228,0.08)] transition-all duration-200 cursor-pointer group"
+                            className="p-8 border-b border-white hover:bg-white hover:text-background transition-brutal cursor-pointer group flex flex-col"
                             onClick={() => news.url && window.open(news.url, '_blank')}
                         >
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                                <h3 className="text-base font-semibold text-white group-hover:text-[#9B6DFF] transition-colors">{news.title}</h3>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${impactColors[news.impact] || impactColors.Low}`}>{news.impact}</span>
+                            <div className="flex items-start justify-between gap-4 mb-4">
+                                <h3 className="text-2xl font-bold font-serif leading-tight group-hover:text-background">{news.title}</h3>
+                                <span className={`text-[10px] font-mono font-bold uppercase tracking-widest px-3 py-1 border border-current shrink-0`}>
+                                    {news.impact}
+                                </span>
                             </div>
-                            <p className="text-sm text-[#6B7280] mb-3">{news.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-                                <span className="flex items-center gap-1">{sentimentIcons[news.sentiment] || sentimentIcons.Neutral} {news.sentiment}</span>
+                            <p className="text-sm font-mono text-white/70 group-hover:text-background/70 mb-6 flex-1 leading-relaxed max-w-3xl">{news.description}</p>
+                            <div className="flex flex-wrap items-center gap-6 text-xs font-mono uppercase tracking-widest text-white/50 group-hover:text-background/60 font-bold">
+                                <span className="flex items-center gap-2 border border-current px-2 py-1">{sentimentIcons[news.sentiment] || sentimentIcons.Neutral} {news.sentiment}</span>
                                 <span>{news.source}</span>
-                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {news.time}</span>
-                                <span className="text-[#A8B0C3] font-medium">{news.category}</span>
+                                <span className="flex items-center gap-2 border-l pl-6 border-current"><Clock className="w-4 h-4" /> {news.time}</span>
+                                <span className="border-l pl-6 border-current">{news.category}</span>
                             </div>
                         </motion.div>
                     ))}
@@ -130,40 +124,42 @@ const DailyUpdates = () => {
             </div>
 
             {/* Alert Panel */}
-            <div className="w-80 shrink-0 rounded-2xl border border-white/[0.06] bg-[#151824] p-5 overflow-y-auto">
-                <div className="flex items-center gap-2 mb-6">
-                    <Bell className="w-5 h-5 text-[#9B6DFF]" />
-                    <h2 className="text-lg font-bold text-white font-[var(--font-outfit)]">Live Alerts</h2>
+            <div className="w-full lg:w-96 shrink-0 bg-background flex flex-col overflow-hidden">
+                <div className="flex items-center gap-4 p-8 border-b border-white shrink-0">
+                    <Bell className="w-6 h-6 text-white" />
+                    <h2 className="text-2xl font-bold text-white font-display uppercase tracking-widest">Live Alerts</h2>
                 </div>
 
-                <div className="space-y-3">
+                <div className="flex-1 overflow-y-auto">
                     {alerts.map((alert, i) => (
                         <motion.div
                             key={alert.id}
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.1 }}
-                            className={`p-3 rounded-xl border ${impactColors[alert.severity] || impactColors.Low}`}
+                            className="p-6 border-b border-white transition-brutal"
                         >
-                            <div className="flex items-center gap-2 mb-1">
-                                {alert.severity === 'Critical' && <Flame className="w-3 h-3" />}
-                                {alert.severity === 'High' && <Zap className="w-3 h-3" />}
-                                {alert.severity === 'Medium' && <AlertTriangle className="w-3 h-3" />}
-                                {alert.severity === 'Low' && <Globe className="w-3 h-3" />}
-                                <span className="text-xs font-bold">{alert.severity}</span>
+                            <div className="flex items-center gap-3 mb-3">
+                                <span className="flex items-center justify-center w-8 h-8 border border-current">
+                                    {alert.severity === 'Critical' && <Flame className="w-4 h-4" />}
+                                    {alert.severity === 'High' && <Zap className="w-4 h-4" />}
+                                    {alert.severity === 'Medium' && <AlertTriangle className="w-4 h-4" />}
+                                    {alert.severity === 'Low' && <Globe className="w-4 h-4" />}
+                                </span>
+                                <span className="text-xs font-mono font-bold uppercase tracking-widest">{alert.severity}</span>
                             </div>
-                            <p className="text-sm text-white">{alert.message}</p>
-                            <p className="text-xs text-[#6B7280] mt-1">{alert.time}</p>
+                            <p className="text-sm font-serif leading-relaxed mb-3">{alert.message}</p>
+                            <p className="text-xs font-mono uppercase tracking-widest text-white/50">{alert.time}</p>
                         </motion.div>
                     ))}
-                </div>
 
-                <div className="mt-6 pt-4 border-t border-white/[0.06]">
-                    <h3 className="text-sm font-bold text-white mb-3">AI Market Insight</h3>
-                    <div className="p-3 rounded-xl bg-[#7B3FE4]/5 border border-[#7B3FE4]/15">
-                        <p className="text-xs text-[#A8B0C3] leading-relaxed">
-                            Market sentiment is predominantly bullish today. The Fed's dovish stance combined with strong tech earnings creates a risk-on environment. Watch for potential volatility around the rate decision announcement.
-                        </p>
+                    <div className="p-8 pb-12">
+                        <h3 className="text-sm font-mono font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2"><Flame className="w-4 h-4" /> AI Market Insight</h3>
+                        <div className="p-6 border border-white bg-transparent">
+                            <p className="text-sm font-serif text-white/80 leading-relaxed">
+                                Market sentiment is predominantly bullish today. The Fed's dovish stance combined with strong tech earnings creates a risk-on environment. Watch for potential volatility around the rate decision announcement.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

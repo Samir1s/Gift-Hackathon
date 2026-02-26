@@ -3,18 +3,18 @@ import { cva } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7B3FE4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+    "inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm uppercase tracking-wide font-mono transition-brutal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#160000] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
     {
         variants: {
             variant: {
-                default: "gradient-primary text-white shadow-[0_4px_16px_rgba(123,63,228,0.25)] hover:shadow-[0_4px_24px_rgba(123,63,228,0.4)]",
-                secondary: "bg-transparent border border-white/10 text-white hover:bg-white/[0.04] hover:border-white/20",
-                destructive: "bg-[#FF4D6D] text-white hover:bg-[#FF4D6D]/80",
-                outline: "border border-white/10 bg-transparent text-white hover:bg-white/[0.04]",
-                ghost: "text-[#A8B0C3] hover:text-white hover:bg-white/[0.04]",
-                link: "text-[#9B6DFF] underline-offset-4 hover:underline",
-                glass: "bg-[#1C1F2E]/80 backdrop-blur-md border border-white/[0.06] text-white hover:bg-[#1C1F2E] hover:border-[#7B3FE4]/20",
-                success: "gradient-success text-white shadow-[0_4px_16px_rgba(0,224,164,0.2)]",
+                default: "btn-brutal",
+                secondary: "bg-white text-[#160000] hover:bg-[#160000] hover:text-white border border-white",
+                destructive: "btn-brutal",
+                outline: "border border-white/20 bg-transparent text-white hover:bg-white hover:text-[#160000]",
+                ghost: "text-white/70 hover:text-white hover:bg-white/10",
+                link: "text-white underline-offset-4 hover:underline",
+                glass: "bg-[#160000]/80 backdrop-blur-md border border-white/20 text-white hover:bg-[#160000] hover:border-white",
+                success: "btn-brutal",
             },
             size: {
                 default: "h-11 px-5 py-2",

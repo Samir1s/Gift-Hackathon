@@ -44,36 +44,32 @@ const Navbar = () => {
         <motion.nav
             initial={{ y: -100 }}
             animate={{ y: 0 }}
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 px-6 py-3 rounded-full transition-all duration-300 ${scrolled
-                    ? 'bg-[#0F1117]/90 backdrop-blur-xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
-                    : 'bg-transparent'
+            className={`fixed top-0 left-0 w-full z-50 flex items-center justify-between px-8 py-4 transition-all duration-300 ${scrolled
+                ? 'bg-background border-b border-white'
+                : 'bg-transparent'
                 }`}
         >
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shadow-[0_0_12px_rgba(123,63,228,0.3)]">
-                    <TrendingUp className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="font-[var(--font-aesthetic)] italic text-base text-white">Trade</span>
-                <span className="font-[var(--font-outfit)] font-bold text-base text-white">Quest</span>
+            <div className="flex flex-col items-start gap-0 cursor-pointer" onClick={() => navigate('/')}>
+                <span className="font-display uppercase font-bold text-4xl text-white leading-none">Trade</span>
+                <span className="font-display uppercase font-bold text-4xl text-white leading-none">Quest</span>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-12">
                 {navLinks.map((link) => (
                     <MagneticLink key={link.name} className="cursor-pointer">
-                        <a href={link.path} className="text-sm text-[#A8B0C3] hover:text-white transition-colors">
+                        <a href={link.path} className="text-sm font-mono uppercase tracking-widest text-white/70 hover:text-white transition-colors">
                             {link.name}
                         </a>
                     </MagneticLink>
                 ))}
             </div>
 
-            <div className="flex items-center gap-3 ml-4">
-                <button onClick={() => navigate('/login')} className="text-sm font-medium text-white hover:text-[#9B6DFF] transition-colors cursor-pointer">
+            <div className="flex items-center gap-6">
+                <button onClick={() => navigate('/login')} className="text-sm font-mono uppercase tracking-widest text-white hover:text-white/70 transition-colors cursor-pointer">
                     Log in
                 </button>
-                <Button onClick={() => navigate('/login')} size="sm"
-                    className="gradient-primary rounded-full text-xs font-semibold shadow-[0_4px_12px_rgba(123,63,228,0.25)] btn-press">
-                    Get Started
+                <Button onClick={() => navigate('/login')} variant="outline" className="px-8 rounded-none">
+                    GET STARTED
                 </Button>
             </div>
         </motion.nav>

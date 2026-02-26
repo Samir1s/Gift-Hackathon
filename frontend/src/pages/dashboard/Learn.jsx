@@ -25,18 +25,6 @@ const fallbackAnalysis = [
     { type: "recommendation", title: "Recommended Next", description: "Start \"Behavioral Finance\" to understand the psychological aspects that affect your trading decisions." },
 ];
 
-const analysisColors = {
-    strength: { bg: 'bg-[#7B3FE4]/5', border: 'border-[#7B3FE4]/10', icon: Target, iconColor: 'text-[#9B6DFF]' },
-    focus: { bg: 'bg-[#FFC857]/5', border: 'border-[#FFC857]/10', icon: BarChart3, iconColor: 'text-[#FFC857]' },
-    recommendation: { bg: 'bg-[#6C7CFF]/5', border: 'border-[#6C7CFF]/10', icon: BookOpen, iconColor: 'text-[#6C7CFF]' },
-};
-
-const difficultyColors = {
-    Beginner: 'text-[#00E0A4] bg-[#00E0A4]/10 border-[#00E0A4]/20',
-    Intermediate: 'text-[#FFC857] bg-[#FFC857]/10 border-[#FFC857]/20',
-    Advanced: 'text-[#FF4D6D] bg-[#FF4D6D]/10 border-[#FF4D6D]/20',
-};
-
 const Learn = () => {
     const [modules, setModules] = useState(fallbackModules);
     const [progressData, setProgressData] = useState(fallbackProgress);
@@ -82,46 +70,44 @@ const Learn = () => {
     };
 
     return (
-        <div className="flex gap-6 h-[calc(100vh-112px)]">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] border-t border-white border-l-0">
             {/* Left Side — Module List or Module Detail */}
-            <div className="w-1/2 overflow-y-auto pr-4 flex flex-col">
+            <div className="w-full lg:w-1/2 overflow-hidden flex flex-col border-r border-white bg-background">
                 {!activeModule ? (
-                    <div className="space-y-3">
-                        <div className="mb-6">
-                            <h1 className="text-3xl font-bold text-white font-[var(--font-outfit)] mb-2">Learn</h1>
-                            <p className="text-[#A8B0C3] text-sm">AI-curated learning modules tailored to your level</p>
+                    <div className="flex-1 overflow-y-auto w-full">
+                        <div className="p-8 border-b border-white bg-background shrink-0">
+                            <h1 className="text-4xl md:text-6xl font-bold text-white font-display uppercase tracking-tight mb-2 leading-none">Learn</h1>
+                            <p className="text-white/70 font-mono text-sm uppercase tracking-widest leading-relaxed">AI-curated learning modules tailored to your level</p>
                         </div>
 
                         {modules.map((mod, i) => (
                             <motion.div
                                 key={mod.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.05 }}
                                 onClick={() => handleModuleClick(mod)}
-                                className="group p-5 rounded-2xl border border-white/[0.06] bg-[#151824] hover:translate-y-[-2px] hover:border-[#7B3FE4]/20 hover:shadow-[0_8px_30px_rgba(123,63,228,0.08)] transition-all duration-200 cursor-pointer"
+                                className="group p-8 border-b border-white bg-background hover:bg-white hover:text-background transition-brutal cursor-pointer flex items-start gap-6"
                             >
-                                <div className="flex items-start gap-4">
-                                    <span className="text-2xl">{mod.icon}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-base font-semibold text-white truncate">{mod.title}</h3>
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${difficultyColors[mod.difficulty]}`}>{mod.difficulty}</span>
+                                <span className="text-4xl">{mod.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <h3 className="text-2xl font-bold font-serif leading-tight group-hover:text-background truncate">{mod.title}</h3>
+                                        <span className={`text-[10px] font-mono font-bold uppercase tracking-widest px-3 py-1 border border-current shrink-0`}>{mod.difficulty}</span>
+                                    </div>
+                                    <p className="font-mono text-white/70 group-hover:text-background/70 text-sm mb-6 max-w-lg leading-relaxed">{mod.description}</p>
+                                    <div className="flex items-center gap-6">
+                                        <div className="flex-1 h-3 border border-current bg-background flex p-[2px]">
+                                            <div className="h-full bg-current transition-all" style={{ width: `${(mod.completed / mod.lessons) * 100}%` }} />
                                         </div>
-                                        <p className="text-[#6B7280] text-sm mb-3">{mod.description}</p>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                                                <div className="h-full rounded-full bg-gradient-to-r from-[#7B3FE4] to-[#9B6DFF] transition-all" style={{ width: `${(mod.completed / mod.lessons) * 100}%` }} />
-                                            </div>
-                                            <span className="text-xs text-[#6B7280] shrink-0 tabular-nums">{mod.completed}/{mod.lessons}</span>
-                                            <div className="flex items-center gap-1 text-[#FFC857]">
-                                                <Star className="w-3 h-3" />
-                                                <span className="text-xs font-bold tabular-nums">{mod.xp} XP</span>
-                                            </div>
+                                        <span className="text-xs font-mono font-bold uppercase tracking-widest shrink-0 tabular-nums">{mod.completed}/{mod.lessons} COMPLETED</span>
+                                        <div className="flex items-center gap-2">
+                                            <Star className="w-4 h-4" />
+                                            <span className="text-xs font-mono font-bold uppercase tracking-widest tabular-nums">{mod.xp} XP</span>
                                         </div>
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-[#6B7280] group-hover:text-white transition-colors mt-1" />
                                 </div>
+                                <ChevronRight className="w-6 h-6 mt-1 flex-shrink-0" />
                             </motion.div>
                         ))}
                     </div>
@@ -129,27 +115,27 @@ const Learn = () => {
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="flex flex-col h-full space-y-4"
+                        className="flex flex-col h-full"
                     >
-                        <div className="flex items-center gap-4 mb-2 shrink-0">
+                        <div className="p-8 border-b border-white flex items-center gap-6 shrink-0 bg-background">
                             <button
                                 onClick={() => { setActiveModule(null); setActiveLesson(null); }}
-                                className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                                className="p-3 border border-white hover:bg-white hover:text-background transition-brutal cursor-pointer"
                             >
-                                <ArrowLeft className="w-5 h-5 text-white" />
+                                <ArrowLeft className="w-6 h-6" />
                             </button>
                             <div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-2xl">{activeModule.icon}</span>
-                                    <h2 className="text-xl font-bold text-white font-[var(--font-outfit)]">{activeModule.title}</h2>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-4xl">{activeModule.icon}</span>
+                                    <h2 className="text-3xl font-bold font-display uppercase tracking-tight">{activeModule.title}</h2>
                                 </div>
                             </div>
                         </div>
 
                         {/* Split the left side into lessons list (top) and active lesson content (bottom) */}
-                        <div className="flex-1 overflow-y-auto space-y-6 flex flex-col">
+                        <div className="flex flex-col flex-1 overflow-hidden bg-background">
                             {/* Lessons List - Horizontally scrollable row or compact grid */}
-                            <div className="flex gap-3 overflow-x-auto pb-2 shrink-0 snap-x">
+                            <div className="flex border-b border-white overflow-x-auto shrink-0 bg-background no-scrollbar">
                                 {activeModule.lesson_content && activeModule.lesson_content.map((lesson, index) => {
                                     const isCompleted = index < activeModule.completed;
                                     const isActive = activeLesson?.id === lesson.id;
@@ -157,25 +143,25 @@ const Learn = () => {
                                         <div
                                             key={lesson.id}
                                             onClick={() => setActiveLesson(lesson)}
-                                            className={`snap-start shrink-0 w-48 p-3 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2
+                                            className={`shrink-0 w-64 p-6 border-r border-white cursor-pointer flex flex-col transition-brutal
                                                 ${isActive
-                                                    ? 'bg-[#7B3FE4]/10 border-[#7B3FE4]/30 shadow-[0_4px_20px_rgba(123,63,228,0.1)]'
-                                                    : 'bg-[#151824] border-white/[0.06] hover:border-white/20'
+                                                    ? 'bg-white text-background'
+                                                    : 'bg-background text-white hover:bg-white hover:text-background group'
                                                 }
                                             `}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-[#A8B0C3]">Lesson {index + 1}</span>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <span className="text-xs font-mono font-bold uppercase tracking-widest opacity-70">Lesson {index + 1}</span>
                                                 {isCompleted ? (
-                                                    <CheckCircle2 className="w-4 h-4 text-[#00E0A4]" />
+                                                    <CheckCircle2 className="w-5 h-5" />
                                                 ) : (
-                                                    <Circle className={`w-4 h-4 ${isActive ? 'text-[#9B6DFF]' : 'text-[#6B7280]'}`} />
+                                                    <Circle className={`w-5 h-5 ${isActive ? 'opacity-100' : 'opacity-40'}`} />
                                                 )}
                                             </div>
-                                            <h4 className={`text-sm font-semibold line-clamp-2 leading-tight ${isActive ? 'text-white' : 'text-[#A8B0C3]'}`}>
+                                            <h4 className="text-lg font-bold font-serif line-clamp-2 leading-tight flex-1">
                                                 {lesson.title}
                                             </h4>
-                                            <span className="text-xs font-medium text-[#FFC857] mt-auto">{lesson.xp} XP</span>
+                                            <span className="text-xs font-mono font-bold uppercase tracking-widest mt-4 opacity-70">{lesson.xp} XP REWARD</span>
                                         </div>
                                     );
                                 })}
@@ -183,31 +169,31 @@ const Learn = () => {
 
                             {/* Active Lesson Content Area */}
                             {activeLesson && (
-                                <div className="flex-1 flex flex-col rounded-2xl border border-white/[0.06] bg-[#151824] p-6 mb-2 overflow-y-auto w-full">
-                                    <h2 className="text-xl font-bold text-white mb-2">{activeLesson.title}</h2>
-                                    <div className="inline-flex items-center gap-2 mb-6">
-                                        <span className="text-xs font-bold text-[#FFC857] bg-[#FFC857]/10 border border-[#FFC857]/20 px-2 py-1 rounded-[6px]">Reward: {activeLesson.xp} XP</span>
+                                <div className="flex-1 flex flex-col p-8 overflow-y-auto">
+                                    <h2 className="text-4xl font-bold font-display uppercase tracking-tight mb-4">{activeLesson.title}</h2>
+                                    <div className="inline-flex items-center gap-2 mb-10">
+                                        <span className="text-xs font-mono font-bold uppercase tracking-widest border border-white px-3 py-1">REWARD: {activeLesson.xp} XP</span>
                                     </div>
 
-                                    <div className="prose prose-invert max-w-none text-sm prose-p:text-[#A8B0C3] prose-p:leading-relaxed prose-li:text-[#A8B0C3] prose-strong:text-white">
+                                    <div className="prose prose-invert max-w-none prose-p:font-mono prose-p:text-sm prose-p:leading-relaxed prose-p:text-white/80 prose-li:font-mono prose-li:text-sm prose-li:text-white/80 prose-strong:text-white prose-headings:font-serif prose-headings:font-bold prose-headings:text-2xl mt-4">
                                         {activeLesson.content.split('\n').map((paragraph, i) => {
                                             if (paragraph.startsWith('- ')) {
                                                 return <li key={i} className="mb-2 ml-4 list-disc">{paragraph.substring(2)}</li>;
                                             }
                                             if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                                                return <h3 key={i} className="text-base font-bold text-white mt-4 mb-2">{paragraph.replace(/\*\*/g, '')}</h3>;
+                                                return <h3 key={i} className="text-xl font-bold font-serif text-white mt-8 mb-4">{paragraph.replace(/\*\*/g, '')}</h3>;
                                             }
-                                            if (paragraph.trim() === '') return <div key={i} className="h-2" />;
-                                            return <p key={i} className="mb-3">{paragraph}</p>;
+                                            if (paragraph.trim() === '') return <div key={i} className="h-4" />;
+                                            return <p key={i} className="mb-6">{paragraph}</p>;
                                         })}
                                     </div>
 
-                                    <div className="mt-auto pt-4 flex justify-end">
+                                    <div className="mt-auto pt-10 flex justify-end">
                                         <button
                                             onClick={() => handleLessonComplete(activeLesson.id)}
-                                            className="px-4 py-2 text-sm bg-gradient-to-r from-[#7B3FE4] to-[#9B6DFF] hover:from-[#6c36cc] hover:to-[#8a5ce6] text-white font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(123,63,228,0.3)]"
+                                            className="px-8 py-4 bg-white text-background font-mono font-bold uppercase tracking-widest text-sm hover:bg-white/90 transition-brutal"
                                         >
-                                            Complete
+                                            Complete Lesson
                                         </button>
                                     </div>
                                 </div>
@@ -218,53 +204,56 @@ const Learn = () => {
             </div>
 
             {/* Right Side */}
-            <div className="w-1/2 flex flex-col gap-6">
+            <div className="w-full lg:w-1/2 flex flex-col bg-background">
                 {/* Top 60% — Progress Graph */}
-                <div className="flex-[3] rounded-2xl border border-white/[0.06] bg-[#151824] p-6 overflow-hidden">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="flex-[3] flex flex-col border-b border-white transition-brutal overflow-hidden">
+                    <div className="p-8 pb-4 flex items-center justify-between border-b border-current">
                         <div>
-                            <h2 className="text-lg font-bold text-white font-[var(--font-outfit)]">Learning Progress</h2>
-                            <p className="text-[#6B7280] text-sm">XP earned this week</p>
+                            <h2 className="text-2xl font-bold font-display uppercase tracking-widest">Learning Progress</h2>
+                            <p className="font-mono text-xs uppercase tracking-widest text-white/70 mt-1">XP earned this week</p>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00E0A4]/10 border border-[#00E0A4]/20">
-                            <TrendingUp className="w-3 h-3 text-[#00E0A4]" />
-                            <span className="text-xs font-bold text-[#00E0A4] tabular-nums">+24%</span>
+                        <div className="flex items-center gap-2 px-4 py-2 border border-current">
+                            <TrendingUp className="w-4 h-4" />
+                            <span className="text-xs font-mono font-bold uppercase tracking-widest tabular-nums">+24%</span>
                         </div>
                     </div>
-                    <ResponsiveContainer width="100%" height="80%">
-                        <AreaChart data={progressData}>
-                            <defs>
-                                <linearGradient id="xpGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#7B3FE4" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#7B3FE4" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                            <XAxis dataKey="day" stroke="#6B7280" fontSize={12} />
-                            <YAxis stroke="#6B7280" fontSize={12} />
-                            <Tooltip contentStyle={{ background: '#1C1F2E', border: '1px solid rgba(123,63,228,0.2)', borderRadius: '12px', color: 'white', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }} />
-                            <Area type="monotone" dataKey="xp" stroke="#9B6DFF" fill="url(#xpGradient)" strokeWidth={2} />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <div className="flex-1 w-full bg-background group-hover:bg-background/5 transition-colors p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={progressData}>
+                                <defs>
+                                    <linearGradient id="xpGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#7B3FE4" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="#7B3FE4" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                                <XAxis dataKey="day" stroke="#6B7280" fontSize={12} axisLine={false} tickLine={false} />
+                                <YAxis stroke="#6B7280" fontSize={12} axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ background: '#1C1F2E', border: '1px solid rgba(123,63,228,0.2)', borderRadius: '12px', color: 'white' }} itemStyle={{ color: '#00E0A4' }} />
+                                <Area type="monotone" dataKey="xp" stroke="#9B6DFF" fill="url(#xpGradient)" strokeWidth={3} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
 
                 {/* Bottom 40% — AI Analysis */}
-                <div className="flex-[2] rounded-2xl border border-white/[0.06] bg-[#151824] p-6 overflow-y-auto">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Brain className="w-5 h-5 text-[#9B6DFF]" />
-                        <h2 className="text-lg font-bold text-white font-[var(--font-outfit)]">AI Analysis</h2>
-                        {loadingAI && <Loader2 className="w-4 h-4 text-[#9B6DFF] animate-spin" />}
+                <div className="flex-[2] flex flex-col bg-background p-8 overflow-y-auto">
+                    <div className="flex items-center gap-4 mb-8">
+                        <Brain className="w-8 h-8 text-white" />
+                        <h2 className="text-2xl font-bold font-display uppercase tracking-widest">AI Analysis</h2>
+                        {loadingAI && <Loader2 className="w-5 h-5 animate-spin ml-2" />}
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {analysis.map((item, i) => {
-                            const style = analysisColors[item.type] || analysisColors.recommendation;
-                            const Icon = style.icon;
+                            let Icon = Target;
+                            if (item.type === 'focus') Icon = BarChart3;
+                            if (item.type === 'recommendation') Icon = BookOpen;
                             return (
-                                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${style.bg} border ${style.border}`}>
-                                    <Icon className={`w-4 h-4 ${style.iconColor} mt-0.5 shrink-0`} />
+                                <div key={i} className="flex items-start gap-4 p-6 border border-white transition-brutal">
+                                    <Icon className="w-6 h-6 shrink-0 mt-1" />
                                     <div>
-                                        <p className="text-sm font-medium text-white mb-1">{item.title}</p>
-                                        <p className="text-xs text-[#A8B0C3]">{item.description}</p>
+                                        <p className="text-sm font-mono font-bold uppercase tracking-widest mb-2 leading-tight">{item.title}</p>
+                                        <p className="text-sm font-serif leading-relaxed text-white/80">{item.description}</p>
                                     </div>
                                 </div>
                             );

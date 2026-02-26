@@ -4,40 +4,40 @@ import { Button } from '@/components/ui/button';
 
 const DashboardNavbar = () => {
     return (
-        <header className="h-16 border-b border-white/[0.06] bg-[#0F1117]/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-30">
+        <header className="h-20 border-b border-white bg-background flex items-center justify-between px-8 sticky top-0 z-30">
             {/* Search */}
-            <div className="relative max-w-md w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+            <div className="relative max-w-xl w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                 <input
                     type="text"
                     placeholder="Search modules, lessons, assets..."
-                    className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#1C1F2E] border border-white/[0.06] text-white placeholder-[#6B7280] text-sm focus:outline-none input-glow transition-all"
+                    className="w-full h-12 pl-12 pr-4 bg-transparent border border-white text-white placeholder-white/50 font-mono text-sm uppercase tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-brutal"
                 />
             </div>
 
             {/* Right side */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-6">
                 {/* CTA */}
-                <Button className="gradient-primary text-white rounded-xl h-9 px-4 text-xs font-semibold shadow-[0_4px_16px_rgba(123,63,228,0.25)] hover:shadow-[0_4px_24px_rgba(123,63,228,0.35)] transition-shadow btn-press">
-                    <Send className="w-3.5 h-3.5 mr-1.5" /> Send & Receive
+                <Button className="bg-white text-background font-mono uppercase font-bold tracking-widest rounded-none h-12 px-6 hover:bg-transparent hover:text-white border border-white transition-brutal cursor-pointer">
+                    <Send className="w-4 h-4 mr-2" /> Send & Receive
                 </Button>
 
                 {/* Notification */}
-                <button className="relative w-10 h-10 rounded-xl bg-[#1C1F2E] border border-white/[0.06] flex items-center justify-center text-[#A8B0C3] hover:text-white hover:border-[#7B3FE4]/30 transition-all cursor-pointer">
-                    <Bell className="w-4 h-4" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF4D6D] rounded-full" />
+                <button className="relative w-12 h-12 bg-transparent border border-white flex items-center justify-center text-white/70 hover:text-background hover:bg-white transition-brutal cursor-pointer">
+                    <Bell className="w-5 h-5" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-white" />
                 </button>
 
                 {/* User */}
-                <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer">
-                    <div className="w-8 h-8 rounded-full gradient-primary p-[2px]">
-                        <div className="w-full h-full rounded-full bg-[#0F1117] flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-4 px-4 py-2 border border-transparent hover:border-white transition-brutal cursor-pointer">
+                    <div className="w-10 h-10 border border-white p-1">
+                        <div className="w-full h-full bg-white flex items-center justify-center">
+                            <User className="w-5 h-5 text-background" />
                         </div>
                     </div>
                     <div className="hidden sm:block">
-                        <p className="text-sm font-medium text-white">Trader</p>
-                        <p className="text-xs text-[#6B7280]">Level 5</p>
+                        <p className="text-sm font-mono uppercase font-bold tracking-widest text-white">Trader</p>
+                        <p className="text-xs font-mono uppercase tracking-widest text-white/50">Level 5</p>
                     </div>
                 </div>
             </div>

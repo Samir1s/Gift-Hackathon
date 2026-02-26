@@ -4,46 +4,42 @@ import OnboardHero from '@/components/onboarding/OnboardHero';
 import FeatureShowcase from '@/components/onboarding/FeatureShowcase';
 import Partners from '@/components/onboarding/Partners';
 import CTA from '@/components/onboarding/CTA';
+import Separator from '@/components/onboarding/Separator';
 import Footer from '@/components/layout/Footer';
 import { Reveal } from '@/components/shared/Reveal';
-import Lenis from 'lenis';
 
 const Onboard = () => {
-    useEffect(() => {
-        const lenis = new Lenis({
-            duration: 1.2,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            direction: 'vertical',
-            gestureDirection: 'vertical',
-            smooth: true,
-            mouseMultiplier: 1,
-            smoothTouch: false,
-            touchMultiplier: 2,
-        });
-
-        function raf(time) {
-            lenis.raf(time);
-            requestAnimationFrame(raf);
-        }
-        requestAnimationFrame(raf);
-        return () => lenis.destroy();
-    }, []);
-
+    // Scroll snapping or lenis can be added back if needed, but Brutalist often relies on stark native scrolling.
     return (
-        <div className="bg-black text-white min-h-screen font-[var(--font-inter)]">
+        <div className="bg-background text-foreground min-h-screen font-serif flex flex-col selection:bg-white selection:text-background">
             <Navbar />
+
             <OnboardHero />
-            <div className="relative z-10 space-y-24 pb-24">
-                <Reveal width="100%">
-                    <Partners />
-                </Reveal>
+
+            <Separator strings={["01010100", "01010010", "01000001", "01000100", "01000101"]} />
+
+            <Reveal width="100%">
+                <Partners />
+            </Reveal>
+
+            <Separator strings={["LEARN", "PRACTICE", "EARN", "MASTER"]} />
+
+            <div className="relative z-10">
                 <Reveal width="100%">
                     <FeatureShowcase />
                 </Reveal>
+            </div>
+
+            <Separator strings={["READY", "SET", "TRADE", "NOW"]} />
+
+            <div className="relative z-10">
                 <Reveal width="100%">
                     <CTA />
                 </Reveal>
             </div>
+
+            <Separator strings={["END", "OF", "PAGE", "HACK"]} />
+
             <Footer />
         </div>
     );
