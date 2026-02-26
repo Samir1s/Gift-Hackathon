@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
+import { sendChatMessage } from '@/lib/api';
+import { useLocation } from 'react-router-dom';
 
 const quickReplies = [
     "What's a candlestick pattern?",
@@ -10,7 +12,7 @@ const quickReplies = [
 ];
 
 const initialMessages = [
-    { role: 'ai', content: "Hi! I'm your TradeQuest AI assistant. I can help you learn about trading, analyze your portfolio, explain market concepts, and more. What would you like to know?" },
+    { role: 'ai', content: "Hi! I'm your TradeQuest AI assistant powered by Gemini. I can help you learn about trading, analyze your portfolio, explain market concepts, and more. What would you like to know?" },
 ];
 
 const ChatbotFAB = () => {
@@ -19,27 +21,37 @@ const ChatbotFAB = () => {
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+    const location = useLocation();
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-    const sendMessage = (text) => {
+    const getContext = () => {
+        const path = location.pathname;
+        if (path.includes('learn')) return 'learn';
+        if (path.includes('playground')) return 'playground';
+        if (path.includes('daily-updates')) return 'daily-updates';
+        if (path.includes('portfolio')) return 'portfolio';
+        return 'dashboard';
+    };
+
+    const sendMessage = async (text) => {
         const msg = text || input;
         if (!msg.trim()) return;
         setMessages(prev => [...prev, { role: 'user', content: msg }]);
         setInput('');
         setIsTyping(true);
-        setTimeout(() => {
-            const responses = {
-                "candlestick": "A candlestick pattern shows price movement over a specific time period. The 'body' shows open/close prices, while 'wicks' show high/low. Green candles mean price went up, red means it went down. Common patterns include Doji, Hammer, and Engulfing patterns.",
-                "portfolio": "Your portfolio is up 24.78% overall with a strong allocation across stocks (42%), crypto (24%), ETFs (20%), and commodities (14%). I'd suggest taking partial profits on BTC and considering more defensive positions.",
-                "risk": "Risk management involves position sizing (never risk more than 1-2% per trade), stop-losses, diversification, and understanding your risk tolerance. The key rule: protect your capital first, profits come second.",
-                "sentiment": "Today's market sentiment is predominantly bullish. Fed's dovish signals and strong tech earnings are driving a risk-on environment. BTC just hit $60K, and major indices are near highs. Watch for potential rate decision volatility.",
-            };
-            const key = Object.keys(responses).find(k => msg.toLowerCase().includes(k));
-            const aiResponse = key ? responses[key] : "That's a great question! In the full version, I'd use the Gemini API to give you a detailed, personalized answer. For now, I can help with topics like candlestick patterns, portfolio analysis, risk management, and market sentiment.";
-            setMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
+        try {
+            const response = await sendChatMessage(msg, getContext());
+            if (response && response.content) {
+                setMessages(prev => [...prev, { role: 'ai', content: response.content }]);
+            } else {
+                setMessages(prev => [...prev, { role: 'ai', content: "I'm having trouble connecting right now. Please check that the backend server is running on port 8000." }]);
+            }
+        } catch (err) {
+            setMessages(prev => [...prev, { role: 'ai', content: "Connection error. Make sure the backend is running: `uvicorn app.main:app --reload`" }]);
+        } finally {
             setIsTyping(false);
-        }, 1200);
+        }
     };
 
     return (
@@ -70,7 +82,7 @@ const ChatbotFAB = () => {
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold text-white">TradeQuest AI</h3>
-                                <p className="text-xs text-[#00E0A4]">Online</p>
+                                <p className="text-xs text-[#00E0A4]">Powered by Gemini</p>
                             </div>
                         </div>
 
@@ -130,8 +142,9 @@ const ChatbotFAB = () => {
                             <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-2">
                                 <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
                                     placeholder="Type a message..."
-                                    className="flex-1 h-10 px-4 rounded-xl bg-[#1C1F2E] border border-white/[0.06] text-white placeholder-[#6B7280] text-sm focus:outline-none input-glow transition-all" />
-                                <button type="submit" className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white shadow-[0_4px_12px_rgba(123,63,228,0.25)] hover:shadow-[0_4px_20px_rgba(123,63,228,0.4)] transition-shadow cursor-pointer">
+                                    disabled={isTyping}
+                                    className="flex-1 h-10 px-4 rounded-xl bg-[#1C1F2E] border border-white/[0.06] text-white placeholder-[#6B7280] text-sm focus:outline-none input-glow transition-all disabled:opacity-50" />
+                                <button type="submit" disabled={isTyping} className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white shadow-[0_4px_12px_rgba(123,63,228,0.25)] hover:shadow-[0_4px_20px_rgba(123,63,228,0.4)] transition-shadow cursor-pointer disabled:opacity-50">
                                     <Send className="w-4 h-4" />
                                 </button>
                             </form>

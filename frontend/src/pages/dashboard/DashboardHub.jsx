@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Gamepad2, Newspaper, Briefcase, ArrowRight, Trophy, Flame, Star } from 'lucide-react';
+import { getMe } from '@/lib/api';
 
 const modules = [
     { name: 'Learn', description: 'AI-curated trading lessons', icon: BookOpen, path: '/dashboard/learn', gradient: 'from-[#7B3FE4]/20 to-[#9B6DFF]/5', border: 'hover:border-[#7B3FE4]/30' },
@@ -12,24 +13,33 @@ const modules = [
 
 const DashboardHub = () => {
     const navigate = useNavigate();
+    const [user, setUser] = useState({ name: 'Trader', xp: 2450, streak: 7, level: 5 });
+
+    useEffect(() => {
+        getMe().then((data) => {
+            if (data) setUser(data);
+        }).catch(() => { });
+    }, []);
+
+    const stats = [
+        { label: 'Total XP', value: user.xp?.toLocaleString() || '2,450', icon: Star, color: 'text-[#FFC857]', glow: 'shadow-[0_0_12px_rgba(255,200,87,0.1)]' },
+        { label: 'Day Streak', value: `${user.streak || 7} Days`, icon: Flame, color: 'text-[#FF4D6D]', glow: 'shadow-[0_0_12px_rgba(255,77,109,0.1)]' },
+        { label: 'Level', value: `Level ${user.level || 5}`, icon: Trophy, color: 'text-[#9B6DFF]', glow: 'shadow-[0_0_12px_rgba(155,109,255,0.1)]' },
+    ];
 
     return (
         <div className="max-w-4xl mx-auto">
             {/* Welcome */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
                 <h1 className="text-4xl font-bold text-white font-[var(--font-outfit)] mb-2">
-                    Welcome back, <span className="font-[var(--font-aesthetic)] italic font-light text-[#A8B0C3]">Trader</span>
+                    Welcome back, <span className="font-[var(--font-aesthetic)] italic font-light text-[#A8B0C3]">{user.name || 'Trader'}</span>
                 </h1>
                 <p className="text-[#6B7280]">Continue your journey to financial mastery</p>
             </motion.div>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4 mb-10">
-                {[
-                    { label: 'Total XP', value: '2,450', icon: Star, color: 'text-[#FFC857]', glow: 'shadow-[0_0_12px_rgba(255,200,87,0.1)]' },
-                    { label: 'Day Streak', value: '7 Days', icon: Flame, color: 'text-[#FF4D6D]', glow: 'shadow-[0_0_12px_rgba(255,77,109,0.1)]' },
-                    { label: 'Level', value: 'Level 5', icon: Trophy, color: 'text-[#9B6DFF]', glow: 'shadow-[0_0_12px_rgba(155,109,255,0.1)]' },
-                ].map((stat, i) => (
+                {stats.map((stat, i) => (
                     <motion.div
                         key={i}
                         initial={{ opacity: 0, y: 20 }}

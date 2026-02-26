@@ -1,14 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, Download, Brain } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, Download, Brain, Loader2 } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from 'recharts';
 import { Button } from '@/components/ui/button';
+import { getPortfolio, getPortfolioAIReview } from '@/lib/api';
 
-const portfolioValue = 12_47_830;
-const dailyPnl = 24_570;
-const totalPnl = 2_47_830;
-
-const holdings = [
+const fallbackHoldings = [
     { name: 'NVIDIA', ticker: 'NVDA', qty: 25, avgPrice: 890, currentPrice: 945, dayChange: 2.3 },
     { name: 'Bitcoin', ticker: 'BTC', qty: 0.5, avgPrice: 42000, currentPrice: 60500, dayChange: 4.1 },
     { name: 'Apple', ticker: 'AAPL', qty: 50, avgPrice: 178, currentPrice: 195, dayChange: -0.8 },
@@ -17,19 +14,63 @@ const holdings = [
     { name: 'Tesla', ticker: 'TSLA', qty: 20, avgPrice: 240, currentPrice: 255, dayChange: -1.5 },
 ];
 
-const allocationData = [
+const fallbackAllocation = [
     { name: 'Stocks', value: 42, color: '#7B3FE4' },
     { name: 'Crypto', value: 24, color: '#6C7CFF' },
     { name: 'ETFs', value: 20, color: '#00E0A4' },
     { name: 'Commodities', value: 14, color: '#FFC857' },
 ];
 
-const performanceData = [
+const fallbackPerformance = [
     { month: 'Sep', value: 1000000 }, { month: 'Oct', value: 1034000 }, { month: 'Nov', value: 1065000 },
     { month: 'Dec', value: 1120000 }, { month: 'Jan', value: 1180000 }, { month: 'Feb', value: 1247830 },
 ];
 
+const fallbackAIReview = [
+    { title: "Diversification: Good", description: "Your portfolio spans 4 asset classes with reasonable distribution. Consider adding fixed income for stability.", color: "green" },
+    { title: "Risk: Moderate", description: "24% crypto allocation adds volatility. Your Sharpe ratio of 1.4 is healthy but could improve with rebalancing.", color: "yellow" },
+    { title: "Suggestion", description: "Consider taking partial profits on BTC (+44% gain) and reallocating to index ETFs to reduce individual asset risk.", color: "purple" },
+];
+
+const reviewColors = {
+    green: { bg: 'bg-[#00E0A4]/5', border: 'border-[#00E0A4]/15', title: 'text-[#00E0A4]' },
+    yellow: { bg: 'bg-[#FFC857]/5', border: 'border-[#FFC857]/15', title: 'text-[#FFC857]' },
+    purple: { bg: 'bg-[#7B3FE4]/5', border: 'border-[#7B3FE4]/15', title: 'text-[#9B6DFF]' },
+};
+
 const Portfolio = () => {
+    const [portfolioValue, setPortfolioValue] = useState(1247830);
+    const [dailyPnl, setDailyPnl] = useState(24570);
+    const [totalPnl, setTotalPnl] = useState(247830);
+    const [winRate, setWinRate] = useState(68.4);
+    const [holdings, setHoldings] = useState(fallbackHoldings);
+    const [allocationData, setAllocationData] = useState(fallbackAllocation);
+    const [performanceData, setPerformanceData] = useState(fallbackPerformance);
+    const [aiReview, setAiReview] = useState(fallbackAIReview);
+    const [loadingAI, setLoadingAI] = useState(false);
+
+    useEffect(() => {
+        getPortfolio().then(data => {
+            if (data) {
+                setPortfolioValue(data.total_value);
+                setDailyPnl(data.daily_pnl);
+                setTotalPnl(data.total_pnl);
+                setWinRate(data.win_rate);
+                if (data.holdings) setHoldings(data.holdings);
+                if (data.allocation) setAllocationData(data.allocation);
+                if (data.performance) setPerformanceData(data.performance);
+            }
+        }).catch(() => { });
+
+        setLoadingAI(true);
+        getPortfolioAIReview().then(data => {
+            if (data && Array.isArray(data)) setAiReview(data);
+        }).catch(() => { }).finally(() => setLoadingAI(false));
+    }, []);
+
+    const dailyPnlPct = portfolioValue ? ((dailyPnl / (portfolioValue - dailyPnl)) * 100).toFixed(2) : '0';
+    const totalPnlPct = portfolioValue ? ((totalPnl / (portfolioValue - totalPnl)) * 100).toFixed(2) : '0';
+
     return (
         <div className="space-y-6 overflow-y-auto h-[calc(100vh-112px)] pr-2">
             <div className="flex items-center justify-between">
@@ -46,9 +87,9 @@ const Portfolio = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Value', value: `₹${portfolioValue.toLocaleString('en-IN')}`, icon: DollarSign, color: 'text-white', gradientOverlay: 'from-[#7B3FE4]/5 to-transparent' },
-                    { label: 'Daily P&L', value: `+₹${dailyPnl.toLocaleString('en-IN')}`, icon: TrendingUp, color: 'text-[#00E0A4]', badge: '+1.97%', gradientOverlay: 'from-[#00E0A4]/5 to-transparent' },
-                    { label: 'Total P&L', value: `+₹${totalPnl.toLocaleString('en-IN')}`, icon: ArrowUpRight, color: 'text-[#00E0A4]', badge: '+24.78%', gradientOverlay: 'from-[#00E0A4]/5 to-transparent' },
-                    { label: 'Win Rate', value: '68.4%', icon: PieChart, color: 'text-[#9B6DFF]', gradientOverlay: 'from-[#9B6DFF]/5 to-transparent' },
+                    { label: 'Daily P&L', value: `${dailyPnl >= 0 ? '+' : ''}₹${Math.abs(dailyPnl).toLocaleString('en-IN')}`, icon: TrendingUp, color: dailyPnl >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]', badge: `${dailyPnl >= 0 ? '+' : ''}${dailyPnlPct}%`, gradientOverlay: dailyPnl >= 0 ? 'from-[#00E0A4]/5 to-transparent' : 'from-[#FF4D6D]/5 to-transparent' },
+                    { label: 'Total P&L', value: `${totalPnl >= 0 ? '+' : ''}₹${Math.abs(totalPnl).toLocaleString('en-IN')}`, icon: ArrowUpRight, color: totalPnl >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]', badge: `${totalPnl >= 0 ? '+' : ''}${totalPnlPct}%`, gradientOverlay: totalPnl >= 0 ? 'from-[#00E0A4]/5 to-transparent' : 'from-[#FF4D6D]/5 to-transparent' },
+                    { label: 'Win Rate', value: `${winRate}%`, icon: PieChart, color: 'text-[#9B6DFF]', gradientOverlay: 'from-[#9B6DFF]/5 to-transparent' },
                 ].map((card, i) => (
                     <motion.div
                         key={i}
@@ -62,7 +103,7 @@ const Portfolio = () => {
                             <card.icon className={`w-4 h-4 ${card.color}`} />
                         </div>
                         <p className={`text-xl font-bold font-[var(--font-outfit)] tabular-nums ${card.color}`}>{card.value}</p>
-                        {card.badge && <span className="text-xs text-[#00E0A4] font-medium tabular-nums">{card.badge}</span>}
+                        {card.badge && <span className={`text-xs font-medium tabular-nums ${card.color}`}>{card.badge}</span>}
                     </motion.div>
                 ))}
             </div>
@@ -171,20 +212,18 @@ const Portfolio = () => {
                 <div className="flex items-center gap-2 mb-4">
                     <Brain className="w-5 h-5 text-[#9B6DFF]" />
                     <h2 className="text-lg font-bold text-white font-[var(--font-outfit)]">AI Portfolio Review</h2>
+                    {loadingAI && <Loader2 className="w-4 h-4 text-[#9B6DFF] animate-spin" />}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-[#00E0A4]/5 border border-[#00E0A4]/15">
-                        <h3 className="text-sm font-bold text-[#00E0A4] mb-2">Diversification: Good</h3>
-                        <p className="text-xs text-[#A8B0C3]">Your portfolio spans 4 asset classes with reasonable distribution. Consider adding fixed income for stability.</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#FFC857]/5 border border-[#FFC857]/15">
-                        <h3 className="text-sm font-bold text-[#FFC857] mb-2">Risk: Moderate</h3>
-                        <p className="text-xs text-[#A8B0C3]">24% crypto allocation adds volatility. Your Sharpe ratio of 1.4 is healthy but could improve with rebalancing.</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#7B3FE4]/5 border border-[#7B3FE4]/15">
-                        <h3 className="text-sm font-bold text-[#9B6DFF] mb-2">Suggestion</h3>
-                        <p className="text-xs text-[#A8B0C3]">Consider taking partial profits on BTC (+44% gain) and reallocating to index ETFs to reduce individual asset risk.</p>
-                    </div>
+                    {aiReview.map((item, i) => {
+                        const style = reviewColors[item.color] || reviewColors.purple;
+                        return (
+                            <div key={i} className={`p-4 rounded-xl ${style.bg} border ${style.border}`}>
+                                <h3 className={`text-sm font-bold ${style.title} mb-2`}>{item.title}</h3>
+                                <p className="text-xs text-[#A8B0C3]">{item.description}</p>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>
