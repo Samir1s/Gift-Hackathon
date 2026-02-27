@@ -8,7 +8,7 @@ const navItems = [
     { name: 'Playgrounds', path: '/dashboard/playground', icon: Gamepad2 },
     { name: 'Daily Updates', path: '/dashboard/daily-updates', icon: Newspaper },
     { name: 'Portfolio', path: '/dashboard/portfolio', icon: Briefcase },
-    { name: 'Community', path: '/dashboard/community', icon: Users },
+    { name: 'Alpha Hub', path: '/dashboard/alpha-hub', icon: Users },
 ];
 
 const Sidebar = () => {
