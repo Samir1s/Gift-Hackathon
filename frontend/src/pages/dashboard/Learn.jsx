@@ -54,17 +54,19 @@ const Learn = () => {
         if (!chartContainerRef.current) return;
 
         let chart;
+        let cancelled = false;
+
         const initChart = async () => {
             try {
                 const { createChart, CandlestickSeries } = await import('lightweight-charts');
                 const container = chartContainerRef.current;
-                if (!container) return;
+                if (cancelled || !container) return;
 
                 const width = container.clientWidth || 300;
                 const height = container.clientHeight || 300;
 
                 if (width <= 0 || height <= 0) {
-                    requestAnimationFrame(initChart);
+                    if (!cancelled) requestAnimationFrame(initChart);
                     return;
                 }
 
@@ -77,6 +79,8 @@ const Learn = () => {
                     width: width,
                     height: height,
                 });
+
+                if (cancelled) { chart.remove(); chart = null; return; }
 
                 const series = chart.addSeries(CandlestickSeries, {
                     upColor: '#00E0A4', downColor: '#FF4D6D',
@@ -97,16 +101,19 @@ const Learn = () => {
         const timer = setTimeout(initChart, 100);
 
         const handleResize = () => {
-            if (chart && chartContainerRef.current) {
-                chart.applyOptions({
-                    width: chartContainerRef.current.clientWidth,
-                    height: chartContainerRef.current.clientHeight,
-                });
+            if (!cancelled && chart && chartContainerRef.current) {
+                try {
+                    chart.applyOptions({
+                        width: chartContainerRef.current.clientWidth,
+                        height: chartContainerRef.current.clientHeight,
+                    });
+                } catch (e) { /* chart may be disposed */ }
             }
         };
         window.addEventListener('resize', handleResize);
 
         return () => {
+            cancelled = true;
             clearTimeout(timer);
             window.removeEventListener('resize', handleResize);
             if (chart) {

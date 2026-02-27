@@ -65,9 +65,13 @@ const NewsChartModal = ({ isOpen, onClose, news }) => {
         if (!isOpen || !chartContainerRef.current) return;
 
         let chart;
+        let cancelled = false;
+        let resizeHandler;
+
         const initChart = async () => {
             try {
                 const { createChart, CandlestickSeries } = await import('lightweight-charts');
+                if (cancelled || !chartContainerRef.current) return;
 
                 chartContainerRef.current.innerHTML = '';
 
@@ -81,6 +85,8 @@ const NewsChartModal = ({ isOpen, onClose, news }) => {
                     height: 400,
                 });
 
+                if (cancelled) { chart.remove(); chart = null; return; }
+
                 const series = chart.addSeries(CandlestickSeries, {
                     upColor: '#00E0A4', downColor: '#FF4D6D',
                     borderUpColor: '#00E0A4', borderDownColor: '#FF4D6D',
@@ -91,26 +97,27 @@ const NewsChartModal = ({ isOpen, onClose, news }) => {
                 series.setData(chartData);
                 chart.timeScale().fitContent();
 
-                const handleResize = () => {
-                    if (chartContainerRef.current && chart) {
-                        chart.applyOptions({
-                            width: chartContainerRef.current.clientWidth,
-                        });
+                resizeHandler = () => {
+                    if (!cancelled && chartContainerRef.current && chart) {
+                        try {
+                            chart.applyOptions({
+                                width: chartContainerRef.current.clientWidth,
+                            });
+                        } catch (e) { /* chart may be disposed */ }
                     }
                 };
 
-                window.addEventListener('resize', handleResize);
-                return () => window.removeEventListener('resize', handleResize);
+                window.addEventListener('resize', resizeHandler);
 
             } catch (err) { console.error('Chart error:', err); }
         };
 
-        let cleanup;
-        initChart().then(res => cleanup = res);
+        initChart();
 
         return () => {
-            if (cleanup) cleanup();
-            if (chart) chart.remove();
+            cancelled = true;
+            if (resizeHandler) window.removeEventListener('resize', resizeHandler);
+            if (chart) { try { chart.remove(); } catch (e) { /* already disposed */ } }
         };
     }, [isOpen, news]);
 

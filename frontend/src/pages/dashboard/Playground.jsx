@@ -163,10 +163,13 @@ const Playground = () => {
 
     useEffect(() => {
         let chart;
+        let cancelled = false;
+        let resizeHandler;
+
         const initChart = async () => {
             try {
                 const { createChart, CandlestickSeries } = await import('lightweight-charts');
-                if (!chartContainerRef.current) return;
+                if (cancelled || !chartContainerRef.current) return;
 
                 // Clear existing content
                 chartContainerRef.current.innerHTML = '';
@@ -181,6 +184,8 @@ const Playground = () => {
                     height: chartContainerRef.current.clientHeight,
                 });
 
+                if (cancelled) { chart.remove(); chart = null; return; }
+
                 const series = chart.addSeries(CandlestickSeries, {
                     upColor: '#00E0A4', downColor: '#FF4D6D',
                     borderUpColor: '#00E0A4', borderDownColor: '#FF4D6D',
@@ -194,6 +199,8 @@ const Playground = () => {
                     chartData = null;
                 }
 
+                if (cancelled) { chart.remove(); chart = null; return; }
+
                 if (!chartData || chartData.length === 0) {
                     chartData = generateMockCandleData();
                 }
@@ -201,27 +208,28 @@ const Playground = () => {
                 series.setData(chartData);
                 chart.timeScale().fitContent();
 
-                const handleResize = () => {
-                    if (chartContainerRef.current) {
-                        chart.applyOptions({
-                            width: chartContainerRef.current.clientWidth,
-                            height: chartContainerRef.current.clientHeight
-                        });
+                resizeHandler = () => {
+                    if (!cancelled && chartContainerRef.current && chart) {
+                        try {
+                            chart.applyOptions({
+                                width: chartContainerRef.current.clientWidth,
+                                height: chartContainerRef.current.clientHeight
+                            });
+                        } catch (e) { /* chart may be disposed */ }
                     }
                 };
 
-                window.addEventListener('resize', handleResize);
-                return () => window.removeEventListener('resize', handleResize);
+                window.addEventListener('resize', resizeHandler);
 
             } catch (err) { console.error('Chart error:', err); }
         };
 
-        let cleanup;
-        initChart().then(res => cleanup = res);
+        initChart();
 
         return () => {
-            if (cleanup) cleanup();
-            if (chart) chart.remove();
+            cancelled = true;
+            if (resizeHandler) window.removeEventListener('resize', resizeHandler);
+            if (chart) { try { chart.remove(); } catch (e) { /* already disposed */ } }
         };
     }, [selectedScenario]);
 
