@@ -135,3 +135,19 @@ export async function sendChatMessage(message, context = 'general') {
 export async function clearChatHistory() {
     return apiRequest('/api/chatbot/history', { method: 'DELETE' });
 }
+
+// ── LSTM Prediction ──────────────────────────────────────
+export async function getStockForecast(ticker, days = 7) {
+    return apiRequest(`/api/prediction/forecast?ticker=${encodeURIComponent(ticker)}&days=${days}`);
+}
+
+export async function getStockAnalysis(ticker) {
+    return apiRequest(`/api/prediction/analysis?ticker=${encodeURIComponent(ticker)}`);
+}
+
+export async function getBatchForecast(tickers, days = 7) {
+    return apiRequest('/api/prediction/batch', {
+        method: 'POST',
+        body: JSON.stringify({ tickers, days }),
+    });
+}

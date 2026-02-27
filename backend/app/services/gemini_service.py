@@ -1,21 +1,21 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import asyncio
 import time
 from app.config import settings
 
-_model = None
+_client = None
 
-# Circuit breaker: skip Gemini for 60s after a failure
+# Circuit breaker: skip Gemini for 10s after a failure
 _gemini_last_failure = 0.0
-_GEMINI_COOLDOWN = 60  # seconds
+_GEMINI_COOLDOWN = 10  # seconds
 
 
-def _get_model():
-    global _model
-    if _model is None and settings.gemini_api_key:
-        genai.configure(api_key=settings.gemini_api_key)
-        _model = genai.GenerativeModel(settings.gemini_model)
-    return _model
+def _get_client():
+    global _client
+    if _client is None and settings.gemini_api_key:
+        _client = genai.Client(api_key=settings.gemini_api_key)
+    return _client
 
 
 def _is_gemini_available():
@@ -25,14 +25,20 @@ def _is_gemini_available():
     return True
 
 
-async def _call_gemini_with_timeout(model, prompt: str, timeout: float = 8.0) -> str:
+async def _call_gemini_with_timeout(prompt: str, timeout: float = 15.0) -> str:
     """Call Gemini with an async timeout to avoid blocking for 30-60s on rate limits."""
     global _gemini_last_failure
+    client = _get_client()
+    if not client:
+        return None
     try:
-        # Run the synchronous SDK call in a thread with a timeout
         response = await asyncio.wait_for(
-            asyncio.to_thread(model.generate_content, prompt),
-            timeout=timeout
+            asyncio.to_thread(
+                client.models.generate_content,
+                model=settings.gemini_model,
+                contents=prompt,
+            ),
+            timeout=timeout,
         )
         return response.text
     except asyncio.TimeoutError:
@@ -45,30 +51,73 @@ async def _call_gemini_with_timeout(model, prompt: str, timeout: float = 8.0) ->
         return None
 
 
-async def chat_response(message: str, context: str = "general") -> str:
-    model = _get_model()
-    if not model or not _is_gemini_available():
+async def chat_response(message: str, context: str = "general", history: list = None) -> str:
+    client = _get_client()
+    if not client or not _is_gemini_available():
         return _fallback_chat(message)
 
-    system = (
+    system_instruction = (
         "You are TradeQuest AI, a friendly and knowledgeable finance education assistant. "
         "You help users learn about trading, investing, market analysis, and portfolio management. "
         "Keep responses concise (2-4 sentences), practical, and educational. "
+        "Be conversational and remember what the user said earlier in the conversation. "
         f"Current context: user is on the '{context}' page."
     )
 
-    result = await _call_gemini_with_timeout(model, f"{system}\n\nUser: {message}")
-    if result:
-        return result
+    try:
+        # Build Gemini chat history from our conversation history
+        gemini_contents = []
+        if history:
+            for msg in history:
+                role = "user" if msg.get("role") == "user" else "model"
+                gemini_contents.append(
+                    types.Content(
+                        role=role,
+                        parts=[types.Part.from_text(text=msg.get("content", ""))]
+                    )
+                )
+
+        # Add the current user message
+        gemini_contents.append(
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=message)]
+            )
+        )
+
+        # Use system instruction via config
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+        )
+
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                client.models.generate_content,
+                model=settings.gemini_model,
+                contents=gemini_contents,
+                config=config,
+            ),
+            timeout=15.0,
+        )
+        if response and response.text:
+            return response.text
+    except asyncio.TimeoutError:
+        global _gemini_last_failure
+        print("Gemini chat timed out — using fallback")
+        _gemini_last_failure = time.time()
+    except Exception as e:
+        print(f"Gemini chat_response error: {e}")
+        _gemini_last_failure = time.time()
+
     return _fallback_chat(message)
 
 
 async def analyze_learning(modules: list) -> list:
-    model = _get_model()
+    client = _get_client()
     completed = sum(m.get("completed", 0) for m in modules)
     total = sum(m.get("lessons", 0) for m in modules)
 
-    if not model or not _is_gemini_available():
+    if not client or not _is_gemini_available():
         return _fallback_learning_analysis()
 
     try:
@@ -78,7 +127,7 @@ async def analyze_learning(modules: list) -> list:
             "Give exactly 3 short insights as JSON array: "
             '[{"type":"strength","title":"...","description":"..."},{"type":"focus","title":"...","description":"..."},{"type":"recommendation","title":"...","description":"..."}]'
         )
-        result = await _call_gemini_with_timeout(model, prompt)
+        result = await _call_gemini_with_timeout(prompt)
         if result:
             import json
             text = result.strip()
@@ -91,9 +140,9 @@ async def analyze_learning(modules: list) -> list:
 
 
 async def analyze_trade(session: dict) -> str:
-    model = _get_model()
+    client = _get_client()
     fallback = "Your trading session shows interesting patterns. Consider using stop-losses to manage risk, and always analyze the news context before entering a position. Practice makes perfect!"
-    if not model or not _is_gemini_available():
+    if not client or not _is_gemini_available():
         return fallback
     prompt = (
         f"Analyze this trading session briefly (3-4 sentences):\n"
@@ -103,13 +152,13 @@ async def analyze_trade(session: dict) -> str:
         f"Scenario: {session.get('scenario_id', 'unknown')}\n"
         "Give practical feedback on their trading decisions."
     )
-    result = await _call_gemini_with_timeout(model, prompt)
+    result = await _call_gemini_with_timeout(prompt)
     return result if result else fallback
 
 
 async def analyze_portfolio(holdings: list) -> list:
-    model = _get_model()
-    if not model or not _is_gemini_available():
+    client = _get_client()
+    if not client or not _is_gemini_available():
         return _fallback_portfolio_analysis()
     try:
         holdings_str = ", ".join(
@@ -121,7 +170,7 @@ async def analyze_portfolio(holdings: list) -> list:
             "Give exactly 3 insights as JSON array: "
             '[{"title":"Diversification: ...","description":"...","color":"green"},{"title":"Risk: ...","description":"...","color":"yellow"},{"title":"Suggestion","description":"...","color":"purple"}]'
         )
-        result = await _call_gemini_with_timeout(model, prompt)
+        result = await _call_gemini_with_timeout(prompt)
         if result:
             import json
             text = result.strip()
@@ -134,16 +183,16 @@ async def analyze_portfolio(holdings: list) -> list:
 
 
 async def analyze_news(title: str, description: str) -> str:
-    model = _get_model()
+    client = _get_client()
     fallback = f"This news about '{title}' could impact related sectors. Monitor price action and consider hedging positions in affected assets."
-    if not model or not _is_gemini_available():
+    if not client or not _is_gemini_available():
         return fallback
     prompt = (
         f"Briefly analyze the market impact of this news (2-3 sentences):\n"
         f"Title: {title}\nDescription: {description}\n"
         "Cover: likely impact on assets, potential trade opportunities, and risk factors."
     )
-    result = await _call_gemini_with_timeout(model, prompt)
+    result = await _call_gemini_with_timeout(prompt)
     return result if result else f"This news could have significant market implications. Watch for price movements in related sectors and consider adjusting positions accordingly."
 
 

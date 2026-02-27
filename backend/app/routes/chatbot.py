@@ -12,7 +12,11 @@ _chat_history: list = []
 async def send_message(req: ChatMessage):
     _chat_history.append({"role": "user", "content": req.message})
 
-    response = await gemini_service.chat_response(req.message, req.context)
+    # Pass last 20 messages as history for multi-turn conversation context
+    recent_history = _chat_history[-21:-1]  # exclude the message we just added
+    response = await gemini_service.chat_response(
+        req.message, req.context, history=recent_history
+    )
 
     _chat_history.append({"role": "ai", "content": response})
 

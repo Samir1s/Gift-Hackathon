@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, Download, Brain, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, Download, Brain, Loader2, Activity } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from 'recharts';
-import { getPortfolio, getPortfolioAIReview } from '@/lib/api';
+import { getPortfolio, getPortfolioAIReview, getBatchForecast } from '@/lib/api';
 
 const fallbackHoldings = [
     { name: 'NVIDIA', ticker: 'NVDA', qty: 25, avgPrice: 890, currentPrice: 945, dayChange: 2.3 },
@@ -41,6 +41,8 @@ const Portfolio = () => {
     const [performanceData, setPerformanceData] = useState(fallbackPerformance);
     const [aiReview, setAiReview] = useState(fallbackAIReview);
     const [loadingAI, setLoadingAI] = useState(false);
+    const [forecasts, setForecasts] = useState([]);
+    const [loadingForecasts, setLoadingForecasts] = useState(false);
 
     useEffect(() => {
         getPortfolio().then(data => {
@@ -59,6 +61,13 @@ const Portfolio = () => {
         getPortfolioAIReview().then(data => {
             if (data && Array.isArray(data)) setAiReview(data);
         }).catch(() => { }).finally(() => setLoadingAI(false));
+
+        // Fetch LSTM forecasts for all holdings
+        setLoadingForecasts(true);
+        const tickers = (holdings || fallbackHoldings).map(h => h.ticker);
+        getBatchForecast(tickers, 7).then(data => {
+            if (data && Array.isArray(data)) setForecasts(data);
+        }).catch(() => { }).finally(() => setLoadingForecasts(false));
     }, []);
 
     const dailyPnlPct = portfolioValue ? ((dailyPnl / (portfolioValue - dailyPnl)) * 100).toFixed(2) : '0';
@@ -221,6 +230,79 @@ const Portfolio = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* LSTM Forecast Section */}
+            <div className="border-b border-white p-8 shrink-0">
+                <div className="flex items-center gap-4 mb-8">
+                    <Activity className="w-8 h-8 text-[#7B3FE4]" />
+                    <h2 className="text-2xl font-bold font-display uppercase tracking-widest">LSTM Forecast</h2>
+                    {loadingForecasts && <Loader2 className="w-5 h-5 animate-spin ml-2" />}
+                    <span className="text-xs font-mono text-white/40 uppercase tracking-widest ml-auto">7-Day Prediction</span>
+                </div>
+
+                {loadingForecasts ? (
+                    <div className="flex items-center justify-center py-12 gap-3">
+                        <Loader2 className="w-6 h-6 animate-spin text-[#7B3FE4]" />
+                        <span className="text-sm font-mono text-white/60">Training LSTM models for your holdings...</span>
+                    </div>
+                ) : forecasts.length > 0 ? (
+                    <div className="overflow-x-auto no-scrollbar">
+                        <table className="w-full min-w-max">
+                            <thead>
+                                <tr className="border-b border-white">
+                                    {['Asset', 'Current', 'Predicted (7d)', 'Change', 'Trend', 'RMSE'].map((h) => (
+                                        <th key={h} className="text-left px-8 py-4 text-xs font-mono font-bold text-white/50 uppercase tracking-widest">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {forecasts.map((f, i) => {
+                                    if (f.error) {
+                                        return (
+                                            <tr key={i} className="border-b border-white/10">
+                                                <td className="px-8 py-5 text-sm font-mono font-bold">{f.ticker}</td>
+                                                <td colSpan={5} className="px-8 py-5 text-sm font-mono text-white/40 italic">Forecast unavailable</td>
+                                            </tr>
+                                        );
+                                    }
+                                    const predicted7d = f.predictions?.[f.predictions.length - 1]?.price;
+                                    return (
+                                        <motion.tr
+                                            key={i}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: i * 0.05 }}
+                                            className="border-b border-white/10 hover:bg-white/5 transition-colors"
+                                        >
+                                            <td className="px-8 py-5">
+                                                <p className="text-lg font-bold font-serif">{f.ticker}</p>
+                                            </td>
+                                            <td className="px-8 py-5 text-lg font-mono tabular-nums font-bold">${f.current_price}</td>
+                                            <td className="px-8 py-5 text-lg font-mono tabular-nums font-bold">${predicted7d}</td>
+                                            <td className="px-8 py-5">
+                                                <span className={`text-lg font-mono tabular-nums font-bold ${(f.change_pct || 0) >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'}`}>
+                                                    {(f.change_pct || 0) >= 0 ? '+' : ''}{f.change_pct}%
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={`text-xs font-mono font-bold uppercase tracking-widest px-3 py-1 border ${f.trend === 'bullish' ? 'border-[#00E0A4] text-[#00E0A4]' :
+                                                        f.trend === 'bearish' ? 'border-[#FF4D6D] text-[#FF4D6D]' :
+                                                            'border-white/30 text-white/50'
+                                                    }`}>
+                                                    {f.trend || 'neutral'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-sm font-mono tabular-nums text-white/60">{f.train_rmse}</td>
+                                        </motion.tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-sm font-mono text-white/40 py-8 text-center">No forecast data available. Backend may be offline.</p>
+                )}
             </div>
         </div>
     );

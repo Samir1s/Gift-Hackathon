@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import auth, learn, playground, daily_updates, portfolio, chatbot
+from app.routes import auth, learn, playground, daily_updates, portfolio, chatbot, prediction
 
 app = FastAPI(
     title="TradeQuest API",
@@ -25,6 +25,7 @@ app.include_router(playground.router)
 app.include_router(daily_updates.router)
 app.include_router(portfolio.router)
 app.include_router(chatbot.router)
+app.include_router(prediction.router)
 
 
 @app.get("/health")

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, TrendingUp, TrendingDown, Info, X, Zap, Target, Shield } from 'lucide-react';
-import { getScenarios, startSession, executeTrade, getChartData } from '@/lib/api';
+import { Clock, TrendingUp, TrendingDown, Info, X, Zap, Target, Shield, Brain, Loader2, Activity } from 'lucide-react';
+import { getScenarios, startSession, executeTrade, getChartData, getStockForecast } from '@/lib/api';
 
 const generateMockCandleData = (count = 100) => {
     let data = [];
@@ -139,6 +139,9 @@ const Playground = () => {
     const [showInsights, setShowInsights] = useState(false);
     const [currentTradeInsights, setCurrentTradeInsights] = useState([]);
     const [lastTradeData, setLastTradeData] = useState(null);
+    const [prediction, setPrediction] = useState(null);
+    const [predictionLoading, setPredictionLoading] = useState(false);
+    const [showPrediction, setShowPrediction] = useState(false);
 
     const chartContainerRef = useRef(null);
 
@@ -300,6 +303,34 @@ const Playground = () => {
         setLoading(false);
     };
 
+    // Ticker mapping for LSTM prediction
+    const getTickerFromScenario = (scenario) => {
+        const map = {
+            'zero-day-vulnerability': 'CBFT',
+            'earnings-surprise-rally': 'NVDA',
+            'interest-rate-shock': 'SPY',
+            'crypto-flash-crash': 'BTC-USD',
+            'oil-supply-disruption': 'CL=F',
+        };
+        return map[scenario.id] || 'AAPL';
+    };
+
+    const handlePrediction = async () => {
+        setPredictionLoading(true);
+        setShowPrediction(true);
+        setPrediction(null);
+        try {
+            const ticker = getTickerFromScenario(selectedScenario);
+            const result = await getStockForecast(ticker, 7);
+            if (result && result.predictions) {
+                setPrediction(result);
+            }
+        } catch (e) {
+            console.warn('Prediction failed:', e);
+        }
+        setPredictionLoading(false);
+    };
+
     return (
         <div className="h-[calc(100vh-80px)] flex flex-col border-t border-white border-l-0">
             {/* Header */}
@@ -348,9 +379,81 @@ const Playground = () => {
                             <h3 className="text-2xl font-bold font-display uppercase tracking-widest text-white">{selectedScenario.asset}</h3>
                             <p className="text-xs font-mono uppercase tracking-widest text-white/50 mt-1">{selectedScenario.title}</p>
                         </div>
-                        <span className="px-3 py-1 border border-white text-xs font-mono font-bold uppercase tracking-widest text-white flex items-center gap-2"><Clock className="w-4 h-4" /> 1H</span>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handlePrediction}
+                                disabled={predictionLoading}
+                                className="px-4 py-2 border border-[#7B3FE4] text-[#7B3FE4] hover:bg-[#7B3FE4] hover:text-white font-mono font-bold uppercase tracking-widest text-xs transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {predictionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                                {predictionLoading ? 'Predicting...' : 'AI Prediction'}
+                            </button>
+                            <span className="px-3 py-2 border border-white text-xs font-mono font-bold uppercase tracking-widest text-white flex items-center gap-2"><Clock className="w-4 h-4" /> 1H</span>
+                        </div>
                     </div>
                     <div ref={chartContainerRef} className="flex-1 w-full bg-background" />
+
+                    {/* LSTM Prediction Panel */}
+                    {showPrediction && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            className="border-t border-white bg-background shrink-0 overflow-hidden"
+                        >
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <Activity className="w-5 h-5 text-[#7B3FE4]" />
+                                        <h4 className="text-sm font-mono font-bold uppercase tracking-widest text-white">LSTM Price Forecast</h4>
+                                        {prediction && (
+                                            <span className={`text-xs font-mono font-bold uppercase tracking-widest px-2 py-1 border ${prediction.trend === 'bullish' ? 'border-[#00E0A4] text-[#00E0A4]' :
+                                                prediction.trend === 'bearish' ? 'border-[#FF4D6D] text-[#FF4D6D]' :
+                                                    'border-white/50 text-white/50'
+                                                }`}>
+                                                {prediction.trend}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button onClick={() => setShowPrediction(false)} className="p-1 hover:bg-white/10 transition-colors">
+                                        <X className="w-4 h-4 text-white/50" />
+                                    </button>
+                                </div>
+
+                                {predictionLoading ? (
+                                    <div className="flex items-center justify-center py-6 gap-3">
+                                        <Loader2 className="w-5 h-5 animate-spin text-[#7B3FE4]" />
+                                        <span className="text-sm font-mono text-white/60">Training LSTM model & generating forecast...</span>
+                                    </div>
+                                ) : prediction ? (
+                                    <div className="flex gap-6 overflow-x-auto no-scrollbar">
+                                        {/* Current Price */}
+                                        <div className="p-4 border border-white/20 bg-white/5 min-w-[140px]">
+                                            <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Current</p>
+                                            <p className="text-xl font-bold font-mono text-white tabular-nums">${prediction.current_price}</p>
+                                        </div>
+                                        {/* Predicted Prices */}
+                                        {prediction.predictions.map((p) => (
+                                            <div key={p.day} className="p-4 border border-white/10 bg-white/2 min-w-[120px] hover:bg-white/5 transition-colors">
+                                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Day {p.day}</p>
+                                                <p className="text-lg font-bold font-mono tabular-nums text-white">${p.price}</p>
+                                                <p className="text-[10px] font-mono text-white/30 mt-1">{p.date}</p>
+                                            </div>
+                                        ))}
+                                        {/* Change & RMSE */}
+                                        <div className="p-4 border border-white/20 bg-white/5 min-w-[140px]">
+                                            <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">7-Day Δ</p>
+                                            <p className={`text-xl font-bold font-mono tabular-nums ${prediction.change_pct >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'}`}>
+                                                {prediction.change_pct >= 0 ? '+' : ''}{prediction.change_pct}%
+                                            </p>
+                                            <p className="text-[10px] font-mono text-white/30 mt-1">RMSE: {prediction.train_rmse}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm font-mono text-white/40 py-4">Prediction unavailable. API may be offline.</p>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
 
                 {/* Order Panel */}

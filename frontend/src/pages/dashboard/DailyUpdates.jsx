@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, Bell, Flame, Zap, Globe, Loader2, X, Info, Target } from 'lucide-react';
-import { getNews, getAlerts } from '@/lib/api';
+import { AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, Bell, Flame, Zap, Globe, Loader2, X, Info, Target, Brain, Activity } from 'lucide-react';
+import { getNews, getAlerts, getStockForecast, getStockAnalysis } from '@/lib/api';
 
 const categories = ['All', 'Stocks', 'Crypto', 'Forex', 'Commodities', 'Macro'];
 
@@ -60,6 +60,42 @@ const generateMockCandleData = (sentiment = 'Neutral', count = 100) => {
 
 const NewsChartModal = ({ isOpen, onClose, news }) => {
     const chartContainerRef = useRef(null);
+    const [lstmPrediction, setLstmPrediction] = useState(null);
+    const [lstmLoading, setLstmLoading] = useState(false);
+
+    // Extract ticker from news
+    const getTickerFromNews = (newsItem) => {
+        if (!newsItem) return null;
+        const title = (newsItem.title || '').toUpperCase();
+        const desc = (newsItem.description || '').toUpperCase();
+        const combined = title + ' ' + desc;
+        const tickerMap = [
+            { keywords: ['BITCOIN', 'BTC'], ticker: 'BTC-USD' },
+            { keywords: ['ETHEREUM', 'ETH'], ticker: 'ETH-USD' },
+            { keywords: ['NVIDIA', 'NVDA'], ticker: 'NVDA' },
+            { keywords: ['APPLE', 'AAPL'], ticker: 'AAPL' },
+            { keywords: ['TESLA', 'TSLA'], ticker: 'TSLA' },
+            { keywords: ['S&P 500', 'SPY', 'S&P500'], ticker: 'SPY' },
+            { keywords: ['OIL', 'CRUDE', 'BRENT'], ticker: 'CL=F' },
+            { keywords: ['GOLD', 'XAU'], ticker: 'GLD' },
+            { keywords: ['EUR/USD', 'EURO', 'EUR'], ticker: 'EURUSD=X' },
+            { keywords: ['FED', 'RATE', 'TREASURY', 'BOND'], ticker: 'TLT' },
+        ];
+        for (const entry of tickerMap) {
+            if (entry.keywords.some(k => combined.includes(k))) return entry.ticker;
+        }
+        return 'SPY'; // Default fallback
+    };
+
+    useEffect(() => {
+        if (!isOpen || !news) { setLstmPrediction(null); return; }
+        const ticker = getTickerFromNews(news);
+        if (!ticker) return;
+        setLstmLoading(true);
+        getStockForecast(ticker, 7).then(data => {
+            if (data) setLstmPrediction(data);
+        }).catch(() => { }).finally(() => setLstmLoading(false));
+    }, [isOpen, news]);
 
     useEffect(() => {
         if (!isOpen || !chartContainerRef.current) return;
@@ -207,6 +243,48 @@ const NewsChartModal = ({ isOpen, onClose, news }) => {
                                     }
                                 </p>
                             </div>
+
+                            {/* LSTM Prediction Section */}
+                            <div className="mt-4 p-6 border border-[#7B3FE4]/30 bg-[#7B3FE4]/5">
+                                <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-[#7B3FE4] mb-3">
+                                    <Brain className="w-3 h-3" />
+                                    <span>LSTM Price Prediction</span>
+                                </div>
+                                {lstmLoading ? (
+                                    <div className="flex items-center gap-2 py-2">
+                                        <Loader2 className="w-4 h-4 animate-spin text-[#7B3FE4]" />
+                                        <span className="text-xs font-mono text-white/50">Training model...</span>
+                                    </div>
+                                ) : lstmPrediction ? (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-mono text-white/50 uppercase">{lstmPrediction.ticker}</span>
+                                            <span className={`text-xs font-mono font-bold uppercase px-2 py-0.5 border ${lstmPrediction.trend === 'bullish' ? 'border-[#00E0A4] text-[#00E0A4]' :
+                                                lstmPrediction.trend === 'bearish' ? 'border-[#FF4D6D] text-[#FF4D6D]' :
+                                                    'border-white/30 text-white/50'
+                                                }`}>{lstmPrediction.trend}</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <p className="text-[9px] font-mono text-white/30 uppercase">Now</p>
+                                                <p className="text-sm font-mono font-bold text-white">${lstmPrediction.current_price}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-mono text-white/30 uppercase">7-Day</p>
+                                                <p className="text-sm font-mono font-bold text-white">${lstmPrediction.predictions?.[lstmPrediction.predictions.length - 1]?.price}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-mono text-white/30 uppercase">Change</p>
+                                                <p className={`text-sm font-mono font-bold ${lstmPrediction.change_pct >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'}`}>
+                                                    {lstmPrediction.change_pct >= 0 ? '+' : ''}{lstmPrediction.change_pct}%
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs font-mono text-white/30">Prediction unavailable</p>
+                                )}
+                            </div>
                         </div>
 
                         <div className="p-6 border-t border-white/10 mt-auto">
@@ -230,6 +308,8 @@ const DailyUpdates = () => {
     const [alerts, setAlerts] = useState(fallbackAlerts);
     const [loading, setLoading] = useState(false);
     const [selectedNews, setSelectedNews] = useState(null);
+    const [marketPredictions, setMarketPredictions] = useState([]);
+    const [predictionsLoading, setPredictionsLoading] = useState(false);
 
     const fetchNewsData = async (category) => {
         setLoading(true);
@@ -258,6 +338,15 @@ const DailyUpdates = () => {
     useEffect(() => {
         fetchNewsData('All');
         getAlerts().then(data => { if (data) setAlerts(data); }).catch(() => { });
+
+        // Fetch LSTM predictions for key market tickers
+        setPredictionsLoading(true);
+        const keyTickers = ['NVDA', 'BTC-USD', 'SPY', 'AAPL'];
+        Promise.all(keyTickers.map(t =>
+            getStockForecast(t, 3).catch(() => ({ ticker: t, error: true }))
+        )).then(results => {
+            setMarketPredictions(results.filter(r => r && !r.error));
+        }).catch(() => { }).finally(() => setPredictionsLoading(false));
     }, []);
 
     const handleCategoryChange = (cat) => {
@@ -357,6 +446,42 @@ const DailyUpdates = () => {
                                 Market sentiment is predominantly bullish today. The Fed's dovish stance combined with strong tech earnings creates a risk-on environment. Watch for potential volatility around the rate decision announcement.
                             </p>
                         </div>
+                    </div>
+
+                    {/* LSTM Market Predictions */}
+                    <div className="px-8 pb-12">
+                        <h3 className="text-sm font-mono font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-[#7B3FE4]" /> LSTM Market Forecast
+                        </h3>
+                        {predictionsLoading ? (
+                            <div className="flex items-center gap-2 py-4">
+                                <Loader2 className="w-4 h-4 animate-spin text-[#7B3FE4]" />
+                                <span className="text-xs font-mono text-white/50">Training models...</span>
+                            </div>
+                        ) : marketPredictions.length > 0 ? (
+                            <div className="space-y-3">
+                                {marketPredictions.map((pred, i) => (
+                                    <div key={i} className="p-4 border border-white/20 hover:bg-white/5 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-mono font-bold">{pred.ticker}</span>
+                                            <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 border ${pred.trend === 'bullish' ? 'border-[#00E0A4] text-[#00E0A4]' :
+                                                    pred.trend === 'bearish' ? 'border-[#FF4D6D] text-[#FF4D6D]' :
+                                                        'border-white/30 text-white/50'
+                                                }`}>{pred.trend}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-mono text-white/50">${pred.current_price}</span>
+                                            <span className={`text-xs font-mono font-bold ${(pred.change_pct || 0) >= 0 ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'
+                                                }`}>
+                                                {(pred.change_pct || 0) >= 0 ? '+' : ''}{pred.change_pct}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs font-mono text-white/30">No predictions available</p>
+                        )}
                     </div>
                 </div>
             </div>

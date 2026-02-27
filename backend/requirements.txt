@@ -2,8 +2,13 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
-google-generativeai
+google-genai
 requests
 python-dotenv
 httpx
 gunicorn
+yfinance
+numpy
+pandas
+scikit-learn
+torch
