@@ -6,13 +6,3 @@ google-generativeai
 requests
 python-dotenv
 httpx
-yfinance
-scikit-learn
-lightgbm
-joblib
-pandas
-numpy
-ta
-passlib[bcrypt]
-bcrypt<4.0.0
-python-jose[cryptography]

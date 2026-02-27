@@ -1,192 +1,51 @@
-"""
-Gemini AI Service — with response caching, API key pooling,
-exponential backoff circuit breaker, and token-bucket rate limiting.
-"""
-
 import google.generativeai as genai
 import asyncio
 import time
-import hashlib
-from typing import Optional
 from app.config import settings
 
-# ── API Key Pool ─────────────────────────────────────────────────────
-_models: list = []
-_current_key_index = 0
+_model = None
 
-
-def _init_models():
-    """Initialize Gemini models from comma-separated API keys."""
-    global _models
-    if _models:
-        return
-
-    raw_keys = settings.gemini_api_key
-    if not raw_keys:
-        print("⚠️  [Gemini] WARNING: GEMINI_API_KEY is empty — all AI features will use fallback responses.")
-        return
-
-    keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
-    if not keys:
-        print("⚠️  [Gemini] WARNING: No valid API keys found after parsing GEMINI_API_KEY.")
-        return
-
-    for key in keys:
-        genai.configure(api_key=key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        _models.append(model)
-
-    print(f"✅ [Gemini] Initialized {len(_models)} API key(s) for round-robin pooling.")
+# Circuit breaker: skip Gemini for 60s after a failure
+_gemini_last_failure = 0.0
+_GEMINI_COOLDOWN = 60  # seconds
 
 
 def _get_model():
-    """Get the next model in the round-robin pool."""
-    global _current_key_index
-    _init_models()
-    if not _models:
-        return None
-    model = _models[_current_key_index % len(_models)]
-    _current_key_index += 1
-    return model
-
-
-# ── Exponential Backoff Circuit Breaker ──────────────────────────────
-_circuit_last_failure = 0.0
-_circuit_consecutive_failures = 0
-_CIRCUIT_BASE_COOLDOWN = 60       # seconds
-_CIRCUIT_MAX_COOLDOWN = 900       # 15 minutes max
+    global _model
+    if _model is None and settings.gemini_api_key:
+        genai.configure(api_key=settings.gemini_api_key)
+        _model = genai.GenerativeModel("gemini-2.0-flash")
+    return _model
 
 
 def _is_gemini_available():
-    """Check if Gemini is available (not in exponential backoff cooldown)."""
-    if _circuit_consecutive_failures == 0:
-        return True
-    cooldown = min(
-        _CIRCUIT_BASE_COOLDOWN * (2 ** (_circuit_consecutive_failures - 1)),
-        _CIRCUIT_MAX_COOLDOWN,
-    )
-    elapsed = time.time() - _circuit_last_failure
-    if elapsed < cooldown:
+    """Check if Gemini is available (not in cooldown from rate limiting)."""
+    if time.time() - _gemini_last_failure < _GEMINI_COOLDOWN:
         return False
     return True
 
 
-def _record_failure():
-    """Record a Gemini call failure for the circuit breaker."""
-    global _circuit_last_failure, _circuit_consecutive_failures
-    _circuit_last_failure = time.time()
-    _circuit_consecutive_failures += 1
-    cooldown = min(
-        _CIRCUIT_BASE_COOLDOWN * (2 ** (_circuit_consecutive_failures - 1)),
-        _CIRCUIT_MAX_COOLDOWN,
-    )
-    print(f"🔴 [Gemini] Failure #{_circuit_consecutive_failures} — circuit breaker cooldown: {cooldown}s")
-
-
-def _record_success():
-    """Reset the circuit breaker on success."""
-    global _circuit_consecutive_failures
-    if _circuit_consecutive_failures > 0:
-        print(f"🟢 [Gemini] Recovered after {_circuit_consecutive_failures} failure(s) — circuit breaker reset.")
-        _circuit_consecutive_failures = 0
-
-
-# ── Token Bucket Rate Limiter ────────────────────────────────────────
-_rate_tokens = 12.0       # max tokens (requests allowed in burst)
-_rate_max_tokens = 12.0   # ceiling
-_rate_refill_rate = 0.2   # tokens per second (~12/min)
-_rate_last_refill = time.time()
-
-
-def _rate_limit_allow() -> bool:
-    """Token bucket rate limiter. Returns True if the request is allowed."""
-    global _rate_tokens, _rate_last_refill
-    now = time.time()
-    elapsed = now - _rate_last_refill
-    _rate_last_refill = now
-    _rate_tokens = min(_rate_max_tokens, _rate_tokens + elapsed * _rate_refill_rate)
-    if _rate_tokens >= 1.0:
-        _rate_tokens -= 1.0
-        return True
-    return False
-
-
-# ── Response Cache ───────────────────────────────────────────────────
-_response_cache: dict = {}
-_CACHE_MAX_SIZE = 200
-
-
-def _cache_key(prefix: str, content: str) -> str:
-    """Generate a short hash key for the cache."""
-    h = hashlib.md5(content.encode("utf-8")).hexdigest()[:16]
-    return f"{prefix}:{h}"
-
-
-def _get_cached(key: str, ttl_seconds: int) -> Optional[str]:
-    """Retrieve a cached response if it exists and hasn't expired."""
-    entry = _response_cache.get(key)
-    if entry and (time.time() - entry["ts"]) < ttl_seconds:
-        return entry["data"]
-    return None
-
-
-def _set_cache(key: str, data):
-    """Store a response in the cache, evicting oldest entries if full."""
-    global _response_cache
-    if len(_response_cache) >= _CACHE_MAX_SIZE:
-        # Evict the oldest 20% of entries
-        sorted_keys = sorted(_response_cache, key=lambda k: _response_cache[k]["ts"])
-        for k in sorted_keys[:_CACHE_MAX_SIZE // 5]:
-            del _response_cache[k]
-    _response_cache[key] = {"data": data, "ts": time.time()}
-
-
-# ── Core Gemini Call ─────────────────────────────────────────────────
-
-async def _call_gemini_with_timeout(prompt: str, timeout: float = 10.0) -> Optional[str]:
-    """
-    Call Gemini with rate limiting, circuit breaker, and async timeout.
-    Returns the response text or None on failure.
-    """
-    # Check circuit breaker
-    if not _is_gemini_available():
-        return None
-
-    # Check rate limit
-    if not _rate_limit_allow():
-        print("⏳ [Gemini] Rate limit hit — returning fallback")
-        return None
-
-    model = _get_model()
-    if not model:
-        return None
-
+async def _call_gemini_with_timeout(model, prompt: str, timeout: float = 8.0) -> str:
+    """Call Gemini with an async timeout to avoid blocking for 30-60s on rate limits."""
+    global _gemini_last_failure
     try:
+        # Run the synchronous SDK call in a thread with a timeout
         response = await asyncio.wait_for(
             asyncio.to_thread(model.generate_content, prompt),
-            timeout=timeout,
+            timeout=timeout
         )
-        _record_success()
         return response.text
     except asyncio.TimeoutError:
-        print(f"⏱️  [Gemini] Timed out after {timeout}s")
-        _record_failure()
+        print(f"Gemini timed out after {timeout}s — using fallback")
+        _gemini_last_failure = time.time()
         return None
     except Exception as e:
-        print(f"❌ [Gemini] Error: {e}")
-        _record_failure()
+        print(f"Gemini error: {e}")
+        _gemini_last_failure = time.time()
         return None
 
 
-# ── Public API Functions ─────────────────────────────────────────────
-
 async def chat_response(message: str, context: str = "general") -> str:
-    # Check cache (5 min TTL)
-    ck = _cache_key("chat", f"{message}|{context}")
-    cached = _get_cached(ck, ttl_seconds=300)
-    if cached:
-        return cached
-
     model = _get_model()
     if not model or not _is_gemini_available():
         return _fallback_chat(message)
@@ -198,24 +57,18 @@ async def chat_response(message: str, context: str = "general") -> str:
         f"Current context: user is on the '{context}' page."
     )
 
-    result = await _call_gemini_with_timeout(f"{system}\n\nUser: {message}")
+    result = await _call_gemini_with_timeout(model, f"{system}\n\nUser: {message}")
     if result:
-        _set_cache(ck, result)
         return result
     return _fallback_chat(message)
 
 
 async def analyze_learning(modules: list) -> list:
+    model = _get_model()
     completed = sum(m.get("completed", 0) for m in modules)
     total = sum(m.get("lessons", 0) for m in modules)
 
-    # Check cache (10 min TTL)
-    ck = _cache_key("learn", f"{completed}/{total}")
-    cached = _get_cached(ck, ttl_seconds=600)
-    if cached:
-        return cached
-
-    if not _is_gemini_available():
+    if not model or not _is_gemini_available():
         return _fallback_learning_analysis()
 
     try:
@@ -225,32 +78,23 @@ async def analyze_learning(modules: list) -> list:
             "Give exactly 3 short insights as JSON array: "
             '[{"type":"strength","title":"...","description":"..."},{"type":"focus","title":"...","description":"..."},{"type":"recommendation","title":"...","description":"..."}]'
         )
-        result = await _call_gemini_with_timeout(prompt)
+        result = await _call_gemini_with_timeout(model, prompt)
         if result:
             import json
             text = result.strip()
             if text.startswith("```"):
                 text = text.split("\n", 1)[1].rsplit("```", 1)[0]
-            parsed = json.loads(text)
-            _set_cache(ck, parsed)
-            return parsed
+            return json.loads(text)
     except Exception:
         pass
     return _fallback_learning_analysis()
 
 
 async def analyze_trade(session: dict) -> str:
-    # Check cache (10 min TTL)
-    session_key = f"{session.get('scenario_id', '')}|{session.get('balance', '')}|{len(session.get('trades', []))}"
-    ck = _cache_key("trade", session_key)
-    cached = _get_cached(ck, ttl_seconds=600)
-    if cached:
-        return cached
-
+    model = _get_model()
     fallback = "Your trading session shows interesting patterns. Consider using stop-losses to manage risk, and always analyze the news context before entering a position. Practice makes perfect!"
-    if not _is_gemini_available():
+    if not model or not _is_gemini_available():
         return fallback
-
     prompt = (
         f"Analyze this trading session briefly (3-4 sentences):\n"
         f"Starting balance: ₹{session.get('start_balance', 1000000):,}\n"
@@ -259,24 +103,14 @@ async def analyze_trade(session: dict) -> str:
         f"Scenario: {session.get('scenario_id', 'unknown')}\n"
         "Give practical feedback on their trading decisions."
     )
-    result = await _call_gemini_with_timeout(prompt)
-    if result:
-        _set_cache(ck, result)
-        return result
-    return fallback
+    result = await _call_gemini_with_timeout(model, prompt)
+    return result if result else fallback
 
 
 async def analyze_portfolio(holdings: list) -> list:
-    # Check cache (5 min TTL)
-    holdings_sig = "|".join(f"{h.get('ticker', '')}:{h.get('currentPrice', '')}" for h in holdings)
-    ck = _cache_key("portfolio", holdings_sig)
-    cached = _get_cached(ck, ttl_seconds=300)
-    if cached:
-        return cached
-
-    if not _is_gemini_available():
+    model = _get_model()
+    if not model or not _is_gemini_available():
         return _fallback_portfolio_analysis()
-
     try:
         holdings_str = ", ".join(
             f"{h['name']} ({h['ticker']}): {h['qty']} units @ ₹{h['currentPrice']}"
@@ -287,44 +121,31 @@ async def analyze_portfolio(holdings: list) -> list:
             "Give exactly 3 insights as JSON array: "
             '[{"title":"Diversification: ...","description":"...","color":"green"},{"title":"Risk: ...","description":"...","color":"yellow"},{"title":"Suggestion","description":"...","color":"purple"}]'
         )
-        result = await _call_gemini_with_timeout(prompt)
+        result = await _call_gemini_with_timeout(model, prompt)
         if result:
             import json
             text = result.strip()
             if text.startswith("```"):
                 text = text.split("\n", 1)[1].rsplit("```", 1)[0]
-            parsed = json.loads(text)
-            _set_cache(ck, parsed)
-            return parsed
+            return json.loads(text)
     except Exception:
         pass
     return _fallback_portfolio_analysis()
 
 
 async def analyze_news(title: str, description: str) -> str:
-    # Check cache (15 min TTL)
-    ck = _cache_key("news", f"{title}|{description}")
-    cached = _get_cached(ck, ttl_seconds=900)
-    if cached:
-        return cached
-
+    model = _get_model()
     fallback = f"This news about '{title}' could impact related sectors. Monitor price action and consider hedging positions in affected assets."
-    if not _is_gemini_available():
+    if not model or not _is_gemini_available():
         return fallback
-
     prompt = (
         f"Briefly analyze the market impact of this news (2-3 sentences):\n"
         f"Title: {title}\nDescription: {description}\n"
         "Cover: likely impact on assets, potential trade opportunities, and risk factors."
     )
-    result = await _call_gemini_with_timeout(prompt)
-    if result:
-        _set_cache(ck, result)
-        return result
-    return f"This news could have significant market implications. Watch for price movements in related sectors and consider adjusting positions accordingly."
+    result = await _call_gemini_with_timeout(model, prompt)
+    return result if result else f"This news could have significant market implications. Watch for price movements in related sectors and consider adjusting positions accordingly."
 
-
-# ── Fallback Responses ───────────────────────────────────────────────
 
 def _fallback_chat(message: str) -> str:
     msg = message.lower().strip()
