@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, Bell, Flame, Zap, Globe, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, Bell, Flame, Zap, Globe, Loader2, X, Info, Target } from 'lucide-react';
 import { getNews, getAlerts } from '@/lib/api';
 
 const categories = ['All', 'Stocks', 'Crypto', 'Forex', 'Commodities', 'Macro'];
@@ -28,11 +28,201 @@ const sentimentIcons = {
     Neutral: <Minus className="w-4 h-4" />,
 };
 
+const generateMockCandleData = (sentiment = 'Neutral', count = 100) => {
+    let data = [];
+    let time = Math.floor(Date.now() / 1000) - count * 3600;
+    let basePrice = 50000;
+    let lastClose = basePrice + (Math.random() - 0.5) * (basePrice * 0.1);
+
+    const trend = sentiment === 'Bullish' ? 0.002 : sentiment === 'Bearish' ? -0.002 : 0;
+
+    for (let i = 0; i < count; i++) {
+        const volatility = 0.01;
+        const open = lastClose;
+        const move = (Math.random() - 0.5 + trend) * (open * volatility);
+        const close = open + move;
+        const high = Math.max(open, close) + Math.random() * (open * 0.002);
+        const low = Math.min(open, close) - Math.random() * (open * 0.002);
+
+        data.push({
+            time: time,
+            open,
+            high,
+            low,
+            close,
+        });
+
+        time += 3600;
+        lastClose = close;
+    }
+    return data;
+};
+
+const NewsChartModal = ({ isOpen, onClose, news }) => {
+    const chartContainerRef = useRef(null);
+
+    useEffect(() => {
+        if (!isOpen || !chartContainerRef.current) return;
+
+        let chart;
+        const initChart = async () => {
+            try {
+                const { createChart, CandlestickSeries } = await import('lightweight-charts');
+
+                chartContainerRef.current.innerHTML = '';
+
+                chart = createChart(chartContainerRef.current, {
+                    layout: { background: { color: 'transparent' }, textColor: '#fff' },
+                    grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
+                    crosshair: { mode: 0, vertLine: { color: '#fff', style: 0 }, horzLine: { color: '#fff', style: 0 } },
+                    rightPriceScale: { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'transparent' },
+                    timeScale: { borderColor: 'rgba(255,255,255,0.2)' },
+                    width: chartContainerRef.current.clientWidth,
+                    height: 400,
+                });
+
+                const series = chart.addSeries(CandlestickSeries, {
+                    upColor: '#00E0A4', downColor: '#FF4D6D',
+                    borderUpColor: '#00E0A4', borderDownColor: '#FF4D6D',
+                    wickUpColor: '#00E0A4', wickDownColor: '#FF4D6D',
+                });
+
+                const chartData = generateMockCandleData(news?.sentiment);
+                series.setData(chartData);
+                chart.timeScale().fitContent();
+
+                const handleResize = () => {
+                    if (chartContainerRef.current && chart) {
+                        chart.applyOptions({
+                            width: chartContainerRef.current.clientWidth,
+                        });
+                    }
+                };
+
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+
+            } catch (err) { console.error('Chart error:', err); }
+        };
+
+        let cleanup;
+        initChart().then(res => cleanup = res);
+
+        return () => {
+            if (cleanup) cleanup();
+            if (chart) chart.remove();
+        };
+    }, [isOpen, news]);
+
+    if (!isOpen) return null;
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/90 backdrop-blur-md"
+                onClick={onClose}
+            >
+                <motion.div
+                    initial={{ scale: 0.95, y: 30, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
+                    exit={{ scale: 0.95, y: 30, opacity: 0 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="w-full max-w-5xl bg-background border border-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row h-[85vh] md:h-auto max-h-[90vh]"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* Left Side: Content */}
+                    <div className="flex-1 p-8 md:p-12 border-b md:border-b-0 md:border-r border-white overflow-y-auto">
+                        <div className="flex items-center justify-between mb-8">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] px-3 py-1 border border-white/30 text-white/50">
+                                TradeQuest Intelligence
+                            </span>
+                            <button onClick={onClose} className="p-2 hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <span className={`px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest border ${news?.sentiment === 'Bullish' ? 'border-[#00E0A4] text-[#00E0A4]' : news?.sentiment === 'Bearish' ? 'border-[#FF4D6D] text-[#FF4D6D]' : 'border-white/50 text-white/50'}`}>
+                                    {news?.sentiment}
+                                </span>
+                                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-white/40">{news?.category}</span>
+                            </div>
+
+                            <h2 className="text-3xl md:text-5xl font-bold font-display uppercase leading-[0.9] text-white tracking-tighter">
+                                {news?.title}
+                            </h2>
+
+                            <p className="text-lg font-serif text-white/70 leading-relaxed italic border-l-2 border-white/20 pl-6 py-2">
+                                {news?.description}
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-white/10">
+                                <div>
+                                    <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Source</p>
+                                    <p className="text-sm font-mono font-bold text-white uppercase">{news?.source}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Impact Level</p>
+                                    <p className={`text-sm font-mono font-bold uppercase ${news?.impact === 'Critical' ? 'text-red-500' : 'text-white'}`}>{news?.impact}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Side: Simulation */}
+                    <div className="w-full md:w-[45%] bg-white/2 flex flex-col">
+                        <div className="p-6 border-b border-white flex items-center justify-between bg-white/5">
+                            <div className="flex items-center gap-2">
+                                <Zap className="w-4 h-4 text-[#00E0A4]" />
+                                <span className="text-xs font-mono font-bold uppercase tracking-widest text-white">Market Simulation</span>
+                            </div>
+                            <div className="px-2 py-1 border border-white/20 text-[10px] font-mono text-white/50">LIVE-ISH</div>
+                        </div>
+
+                        <div className="flex-1 p-4 flex flex-col">
+                            <div ref={chartContainerRef} className="flex-1 min-h-[300px] w-full" />
+
+                            <div className="mt-6 p-6 border border-white/20 bg-background/50">
+                                <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-[#00E0A4] mb-3">
+                                    <Target className="w-3 h-3" />
+                                    <span>AI Trading Insight</span>
+                                </div>
+                                <p className="text-xs font-mono text-white/60 leading-relaxed uppercase tracking-wider">
+                                    {news?.sentiment === 'Bullish'
+                                        ? "Positioning for a breakout above psychological resistance. Volume indicator suggests strong institutional accumulation."
+                                        : news?.sentiment === 'Bearish'
+                                            ? "Bearish momentum accelerating. Liquidity sweep expected below current support levels before any reversal."
+                                            : "Market indecision in progress. Wait for confirmed candle close above current range highs for directional bias."
+                                    }
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-white/10 mt-auto">
+                            <button
+                                onClick={onClose}
+                                className="w-full py-4 bg-white text-background font-mono font-bold uppercase tracking-widest text-xs hover:invert transition-all flex items-center justify-center gap-2 group"
+                            >
+                                Acknowledge Simulation <Info className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
 const DailyUpdates = () => {
     const [activeCategory, setActiveCategory] = useState('All');
     const [newsData, setNewsData] = useState(fallbackNews);
     const [alerts, setAlerts] = useState(fallbackAlerts);
     const [loading, setLoading] = useState(false);
+    const [selectedNews, setSelectedNews] = useState(null);
 
     const fetchNewsData = async (category) => {
         setLoading(true);
@@ -103,7 +293,7 @@ const DailyUpdates = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.03 }}
                             className="p-8 border-b border-white hover:bg-white hover:text-background transition-brutal cursor-pointer group flex flex-col"
-                            onClick={() => news.url && window.open(news.url, '_blank')}
+                            onClick={() => setSelectedNews(news)}
                         >
                             <div className="flex items-start justify-between gap-4 mb-4">
                                 <h3 className="text-2xl font-bold font-serif leading-tight group-hover:text-background">{news.title}</h3>
@@ -163,6 +353,12 @@ const DailyUpdates = () => {
                     </div>
                 </div>
             </div>
+
+            <NewsChartModal
+                isOpen={!!selectedNews}
+                onClose={() => setSelectedNews(null)}
+                news={selectedNews}
+            />
         </div>
     );
 };

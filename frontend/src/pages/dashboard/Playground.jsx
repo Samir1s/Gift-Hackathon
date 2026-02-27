@@ -1,7 +1,123 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Clock, TrendingUp, TrendingDown, Info, X, Zap, Target, Shield } from 'lucide-react';
 import { getScenarios, startSession, executeTrade, getChartData } from '@/lib/api';
+
+const generateMockCandleData = (count = 100) => {
+    let data = [];
+    let time = Math.floor(Date.now() / 1000) - count * 3600;
+    let lastClose = 50000 + (Math.random() - 0.5) * 10000;
+
+    for (let i = 0; i < count; i++) {
+        const open = lastClose;
+        const close = open + (Math.random() - 0.5) * (open * 0.02);
+        const high = Math.max(open, close) + Math.random() * (open * 0.005);
+        const low = Math.min(open, close) - Math.random() * (open * 0.005);
+
+        data.push({
+            time: time,
+            open,
+            high,
+            low,
+            close,
+        });
+
+        time += 3600;
+        lastClose = close;
+    }
+    return data;
+};
+
+const TradeInsightPopup = ({ isOpen, onClose, tradeData, insights }) => {
+    if (!isOpen) return null;
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+                onClick={onClose}
+            >
+                <motion.div
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
+                    className="w-full max-w-lg bg-background border border-white shadow-2xl relative overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="p-6 border-b border-white flex justify-between items-center bg-white/5">
+                        <div className="flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-[#00E0A4]" />
+                            <h3 className="text-xl font-bold font-display uppercase tracking-wider text-white">Trade Execution Insight</h3>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="p-8 space-y-8">
+                        {/* Trade Summary */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 border border-white/20 bg-white/5">
+                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Position</p>
+                                <p className={`text-xl font-bold font-mono ${tradeData.type === 'buy' ? 'text-[#00E0A4]' : 'text-[#FF4D6D]'}`}>
+                                    {tradeData.type.toUpperCase()}
+                                </p>
+                            </div>
+                            <div className="p-4 border border-white/20 bg-white/5">
+                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Asset</p>
+                                <p className="text-xl font-bold font-mono text-white">{tradeData.asset}</p>
+                            </div>
+                            <div className="p-4 border border-white/20 bg-white/5">
+                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Quantity</p>
+                                <p className="text-xl font-bold font-mono text-white">{tradeData.quantity}</p>
+                            </div>
+                            <div className="p-4 border border-white/20 bg-white/5">
+                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1">Price</p>
+                                <p className="text-xl font-bold font-mono text-white">₹{parseFloat(tradeData.price).toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {/* AI Insights Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-white/60">
+                                <Target className="w-4 h-4" />
+                                <span>Risk Analysis & Insights</span>
+                            </div>
+
+                            <div className="space-y-3">
+                                {insights.map((insight, idx) => (
+                                    <div key={idx} className="flex gap-4 p-4 border border-white/10 bg-white/2 hover:bg-white/5 transition-colors items-start">
+                                        <div className="shrink-0 mt-1">
+                                            {insight.type === 'positive' ? <TrendingUp className="w-4 h-4 text-[#00E0A4]" /> :
+                                                insight.type === 'negative' ? <TrendingDown className="w-4 h-4 text-[#FF4D6D]" /> :
+                                                    <Info className="w-4 h-4 text-white/50" />}
+                                        </div>
+                                        <p className="text-sm text-white/80 leading-relaxed font-serif italic">
+                                            {insight.text}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 border-t border-white/10 bg-white/5 text-center">
+                        <button
+                            onClick={onClose}
+                            className="px-8 py-3 border border-white bg-white text-background font-mono font-bold uppercase tracking-widest text-sm hover:bg-white/90 transition-all"
+                        >
+                            Acknowledge
+                        </button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
 
 const fallbackScenarios = [
     { id: 'zero-day-vulnerability', title: 'The Zero-Day Vulnerability', asset: 'CYBERFORT (CBFT)', difficulty: 'Beginner', xp: 150 },
@@ -10,52 +126,6 @@ const fallbackScenarios = [
     { id: 'crypto-flash-crash', title: 'Crypto Flash Crash', asset: 'Bitcoin (BTC)', difficulty: 'Advanced', xp: 350 },
     { id: 'oil-supply-disruption', title: 'Oil Supply Disruption', asset: 'Crude Oil (CL)', difficulty: 'Intermediate', xp: 250 },
 ];
-
-const generateLocalCandlestickData = (scenarioId) => {
-    const data = [];
-    const now = Math.floor(Date.now() / 1000);
-    const numCandles = 100;
-
-    let basePrice, volatility, trend, eventCandle, eventType;
-
-    switch (scenarioId) {
-        case 'zero-day-vulnerability': basePrice = 450; volatility = 2; trend = 0.5; eventCandle = 60; eventType = 'crash'; break;
-        case 'earnings-surprise-rally': basePrice = 850; volatility = 5; trend = 0; eventCandle = 80; eventType = 'gap-up'; break;
-        case 'interest-rate-shock': basePrice = 5100; volatility = 15; trend = -2; eventCandle = 0; eventType = 'steady-drop'; break;
-        case 'crypto-flash-crash': basePrice = 60000; volatility = 200; trend = 50; eventCandle = 50; eventType = 'flash-crash'; break;
-        case 'oil-supply-disruption': basePrice = 75; volatility = 0.5; trend = 0.1; eventCandle = 40; eventType = 'spike-consolidate'; break;
-        default: basePrice = 45000; volatility = 100; trend = 0; eventCandle = 0; eventType = 'random'; break;
-    }
-
-    let currentPrice = basePrice;
-    let prices = [];
-    for (let i = 0; i <= numCandles; i++) {
-        if (eventType === 'crash' && i >= eventCandle) currentPrice -= currentPrice * 0.05 + Math.random() * (currentPrice * 0.02);
-        else if (eventType === 'gap-up' && i === eventCandle) currentPrice += currentPrice * 0.15;
-        else if (eventType === 'gap-up' && i > eventCandle) currentPrice += currentPrice * 0.01 + Math.random() * (currentPrice * 0.01);
-        else if (eventType === 'flash-crash' && i === eventCandle) currentPrice -= currentPrice * 0.20;
-        else if (eventType === 'flash-crash' && i > eventCandle && i < eventCandle + 20) currentPrice += currentPrice * 0.015;
-        else if (eventType === 'spike-consolidate' && i === eventCandle) currentPrice += currentPrice * 0.10;
-        else if (eventType === 'spike-consolidate' && i > eventCandle) currentPrice += (Math.random() - 0.5) * volatility;
-        else currentPrice += trend + (Math.random() - 0.5) * volatility * 2;
-        currentPrice = Math.max(0.01, currentPrice);
-        prices.push(currentPrice);
-    }
-
-    for (let j = 0; j <= numCandles; j++) {
-        const i = numCandles - j;
-        const open = prices[j];
-        let close = prices[j + 1] || open + (Math.random() - 0.5) * volatility;
-        if (eventType === 'gap-up' && j === eventCandle) close = open;
-        const maxPrice = Math.max(open, close);
-        const minPrice = Math.min(open, close);
-        const high = maxPrice + Math.random() * volatility * 1.5;
-        const low = Math.max(0.01, minPrice - Math.random() * volatility * 1.5);
-
-        data.push({ time: now - i * 3600, open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2), close: +close.toFixed(2) });
-    }
-    return data;
-};
 
 const Playground = () => {
     const [balance, setBalance] = useState(1000000);
@@ -66,6 +136,10 @@ const Playground = () => {
     const [quantity, setQuantity] = useState('100');
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showInsights, setShowInsights] = useState(false);
+    const [currentTradeInsights, setCurrentTradeInsights] = useState([]);
+    const [lastTradeData, setLastTradeData] = useState(null);
+
     const chartContainerRef = useRef(null);
 
     useEffect(() => {
@@ -93,17 +167,20 @@ const Playground = () => {
             try {
                 const { createChart, CandlestickSeries } = await import('lightweight-charts');
                 if (!chartContainerRef.current) return;
+
+                // Clear existing content
+                chartContainerRef.current.innerHTML = '';
+
                 chart = createChart(chartContainerRef.current, {
                     layout: { background: { color: 'transparent' }, textColor: '#fff' },
-                    grid: { vertLines: { color: 'rgba(255,255,255,0.1)' }, horzLines: { color: 'rgba(255,255,255,0.1)' } },
+                    grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
                     crosshair: { mode: 0, vertLine: { color: '#fff', style: 0 }, horzLine: { color: '#fff', style: 0 } },
-                    rightPriceScale: { borderColor: 'rgba(255,255,255,1)' },
-                    timeScale: { borderColor: 'rgba(255,255,255,1)' },
+                    rightPriceScale: { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'transparent' },
+                    timeScale: { borderColor: 'rgba(255,255,255,0.2)' },
                     width: chartContainerRef.current.clientWidth,
                     height: chartContainerRef.current.clientHeight,
                 });
 
-                // Monochrome candle styling
                 const series = chart.addSeries(CandlestickSeries, {
                     upColor: '#00E0A4', downColor: '#FF4D6D',
                     borderUpColor: '#00E0A4', borderDownColor: '#FF4D6D',
@@ -111,17 +188,48 @@ const Playground = () => {
                 });
 
                 let chartData;
-                try { chartData = await getChartData(); } catch { chartData = null; }
-                series.setData(chartData && chartData.length > 0 ? chartData : generateLocalCandlestickData(selectedScenario.id));
+                try {
+                    chartData = await getChartData(selectedScenario.id);
+                } catch {
+                    chartData = null;
+                }
+
+                if (!chartData || chartData.length === 0) {
+                    chartData = generateMockCandleData();
+                }
+
+                series.setData(chartData);
                 chart.timeScale().fitContent();
+
+                const handleResize = () => {
+                    if (chartContainerRef.current) {
+                        chart.applyOptions({
+                            width: chartContainerRef.current.clientWidth,
+                            height: chartContainerRef.current.clientHeight
+                        });
+                    }
+                };
+
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+
             } catch (err) { console.error('Chart error:', err); }
         };
-        initChart();
-        return () => { if (chart) chart.remove(); };
+
+        let cleanup;
+        initChart().then(res => cleanup = res);
+
+        return () => {
+            if (cleanup) cleanup();
+            if (chart) chart.remove();
+        };
     }, [selectedScenario]);
 
     const handleTrade = async () => {
         setLoading(true);
+        let tradeResult = null;
+        let executionPrice = 0;
+
         try {
             const sid = sessionId || 'local';
             const result = await executeTrade(sid, orderType, parseInt(quantity) || 0, selectedScenario.id);
@@ -129,22 +237,58 @@ const Playground = () => {
                 setBalance(result.balance);
                 setPosition(result.position);
                 setSessionId(result.id);
-                setLoading(false);
-                return;
+                tradeResult = result;
+                executionPrice = parseFloat(result.position?.price || 0);
             }
         } catch { }
 
-        const qty = parseInt(quantity) || 0;
-        const price = 45000 + (Math.random() - 0.5) * 2000;
-        const cost = qty * price;
-        if (orderType === 'buy' && cost <= balance) {
-            setBalance(b => b - cost);
-            setPosition({ type: 'LONG', qty, price: price.toFixed(2), asset: selectedScenario.asset });
-        } else if (orderType === 'sell' && position) {
-            const pnl = (price - parseFloat(position.price)) * position.qty;
-            setBalance(b => b + parseFloat(position.price) * position.qty + pnl);
-            setPosition(null);
+        if (!tradeResult) {
+            // Local fallback logic
+            const qty = parseInt(quantity) || 0;
+            let basePrice = 45000;
+            switch (selectedScenario.id) {
+                case 'zero-day-vulnerability': basePrice = 450; break;
+                case 'earnings-surprise-rally': basePrice = 850; break;
+                case 'interest-rate-shock': basePrice = 5100; break;
+                case 'crypto-flash-crash': basePrice = 60000; break;
+                case 'oil-supply-disruption': basePrice = 75; break;
+                default: basePrice = 45000; break;
+            }
+
+            executionPrice = basePrice + (Math.random() - 0.5) * (basePrice * 0.05);
+            const cost = qty * executionPrice;
+
+            if (orderType === 'buy' && cost <= balance) {
+                setBalance(b => b - cost);
+                const newPos = { type: 'LONG', qty, price: executionPrice.toFixed(2), asset: selectedScenario.asset };
+                setPosition(newPos);
+                tradeResult = { position: newPos };
+            } else if (orderType === 'sell' && position) {
+                const pnl = (executionPrice - parseFloat(position.price)) * position.qty;
+                setBalance(b => b + parseFloat(position.price) * position.qty + pnl);
+                tradeResult = { position: { ...position, price: executionPrice.toFixed(2) } };
+                setPosition(null);
+            }
         }
+
+        if (tradeResult) {
+            // Generate Mock Insights based on scenario and trade
+            const insights = [
+                { type: orderType === 'buy' ? 'positive' : 'negative', text: `Trading ${selectedScenario.asset} during ${selectedScenario.title} is highly volatile. Execution achieved at ₹${executionPrice.toFixed(2)}.` },
+                { type: 'info', text: "AI Analysis suggests watching for immediate resistance at the 200-period EMA before further commitment." },
+                { type: Math.random() > 0.5 ? 'positive' : 'negative', text: "Smart money flow indicates institutional accumulation despite the current news cycle." }
+            ];
+
+            setLastTradeData({
+                type: orderType,
+                asset: selectedScenario.asset,
+                quantity: quantity,
+                price: executionPrice.toFixed(2)
+            });
+            setCurrentTradeInsights(insights);
+            setShowInsights(true);
+        }
+
         setLoading(false);
     };
 
@@ -256,6 +400,13 @@ const Playground = () => {
                     </div>
                 </div>
             </div>
+
+            <TradeInsightPopup
+                isOpen={showInsights}
+                onClose={() => setShowInsights(false)}
+                tradeData={lastTradeData || {}}
+                insights={currentTradeInsights}
+            />
         </div>
     );
 };

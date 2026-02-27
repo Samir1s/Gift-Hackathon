@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Star, ChevronRight, Brain, Target, TrendingUp, BarChart3, Loader2, ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BookOpen, Star, ChevronRight, Brain, Target, TrendingUp, BarChart3, Loader2, ArrowLeft, CheckCircle2, Circle, Clock } from 'lucide-react';
 import { getModules, getProgress, getLearnAIAnalysis, getModule, completeLesson } from '@/lib/api';
 
 const fallbackProgress = [
-    { day: 'Mon', xp: 120 }, { day: 'Tue', xp: 250 }, { day: 'Wed', xp: 180 },
-    { day: 'Thu', xp: 420 }, { day: 'Fri', xp: 380 }, { day: 'Sat', xp: 500 }, { day: 'Sun', xp: 650 },
+    { time: '2026-02-21', open: 0, high: 150, low: 0, close: 120 },
+    { time: '2026-02-22', open: 120, high: 300, low: 100, close: 250 },
+    { time: '2026-02-23', open: 250, high: 270, low: 150, close: 180 },
+    { time: '2026-02-24', open: 180, high: 450, low: 180, close: 420 },
+    { time: '2026-02-25', open: 420, high: 480, low: 350, close: 380 },
+    { time: '2026-02-26', open: 380, high: 550, low: 360, close: 500 },
+    { time: '2026-02-27', open: 500, high: 700, low: 490, close: 650 },
 ];
 
 const fallbackModules = [
-    { id: 1, title: "Market Reaction to News", description: "Learn how markets respond to breaking news events", difficulty: "Beginner", lessons: 5, completed: 3, xp: 150, icon: "📰" },
-    { id: 2, title: "Technical Analysis Basics", description: "Master candlestick patterns and chart reading", difficulty: "Beginner", lessons: 8, completed: 5, xp: 200, icon: "📊" },
-    { id: 3, title: "Risk Management Strategies", description: "Protect your portfolio with smart risk controls", difficulty: "Intermediate", lessons: 6, completed: 2, xp: 250, icon: "🛡️" },
+    { id: 1, title: "Market Reaction to News", description: "Learn how markets respond to breaking news events", difficulty: "Beginner", lessons: 5, completed: 0, xp: 150, icon: "📰" },
+    { id: 2, title: "Technical Analysis Basics", description: "Master candlestick patterns and chart reading", difficulty: "Beginner", lessons: 8, completed: 0, xp: 200, icon: "📊" },
+    { id: 3, title: "Risk Management Strategies", description: "Protect your portfolio with smart risk controls", difficulty: "Intermediate", lessons: 6, completed: 0, xp: 250, icon: "🛡️" },
     { id: 4, title: "Behavioral Finance", description: "Understand psychological biases in trading", difficulty: "Intermediate", lessons: 7, completed: 0, xp: 300, icon: "🧠" },
     { id: 5, title: "AI vs Human Prediction", description: "Compare AI models with human trading intuition", difficulty: "Advanced", lessons: 4, completed: 0, xp: 400, icon: "🤖" },
-    { id: 6, title: "Financial Terminology", description: "Essential glossary for every trader", difficulty: "Beginner", lessons: 10, completed: 10, xp: 100, icon: "📚" },
+    { id: 6, title: "Financial Terminology", description: "Essential glossary for every trader", difficulty: "Beginner", lessons: 5, completed: 0, xp: 100, icon: "📚" },
 ];
 
 const fallbackAnalysis = [
@@ -33,6 +37,9 @@ const Learn = () => {
     const [activeModule, setActiveModule] = useState(null);
     const [activeLesson, setActiveLesson] = useState(null);
 
+    const chartContainerRef = React.useRef(null);
+    const [chartInstance, setChartInstance] = useState(null);
+
     useEffect(() => {
         getModules().then(data => { if (data) setModules(data); }).catch(() => { });
         getProgress().then(data => { if (data) setProgressData(data); }).catch(() => { });
@@ -42,6 +49,73 @@ const Learn = () => {
             if (data && Array.isArray(data)) setAnalysis(data);
         }).catch(() => { }).finally(() => setLoadingAI(false));
     }, []);
+
+    useEffect(() => {
+        if (!chartContainerRef.current) return;
+
+        let chart;
+        const initChart = async () => {
+            try {
+                const { createChart, CandlestickSeries } = await import('lightweight-charts');
+                const container = chartContainerRef.current;
+                if (!container) return;
+
+                const width = container.clientWidth || 300;
+                const height = container.clientHeight || 300;
+
+                if (width <= 0 || height <= 0) {
+                    requestAnimationFrame(initChart);
+                    return;
+                }
+
+                chart = createChart(container, {
+                    layout: { background: { color: 'transparent' }, textColor: '#fff' },
+                    grid: { vertLines: { color: 'rgba(255,255,255,0.1)' }, horzLines: { color: 'rgba(255,255,255,0.1)' } },
+                    crosshair: { mode: 0, vertLine: { color: '#fff', style: 0 }, horzLine: { color: '#fff', style: 0 } },
+                    rightPriceScale: { borderColor: 'rgba(255,255,255,1)' },
+                    timeScale: { borderColor: 'rgba(255,255,255,1)' },
+                    width: width,
+                    height: height,
+                });
+
+                const series = chart.addSeries(CandlestickSeries, {
+                    upColor: '#00E0A4', downColor: '#FF4D6D',
+                    borderUpColor: '#00E0A4', borderDownColor: '#FF4D6D',
+                    wickUpColor: '#00E0A4', wickDownColor: '#FF4D6D',
+                });
+
+                if (Array.isArray(progressData) && progressData.length > 0) {
+                    series.setData(progressData);
+                }
+                chart.timeScale().fitContent();
+                setChartInstance(chart);
+            } catch (err) {
+                console.error("Chart initialization error:", err);
+            }
+        };
+
+        const timer = setTimeout(initChart, 100);
+
+        const handleResize = () => {
+            if (chart && chartContainerRef.current) {
+                chart.applyOptions({
+                    width: chartContainerRef.current.clientWidth,
+                    height: chartContainerRef.current.clientHeight,
+                });
+            }
+        };
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', handleResize);
+            if (chart) {
+                try {
+                    chart.remove();
+                } catch (e) { }
+            }
+        };
+    }, [progressData]);
 
     const handleModuleClick = async (module) => {
         try {
@@ -217,22 +291,8 @@ const Learn = () => {
                             <span className="text-xs font-mono font-bold uppercase tracking-widest tabular-nums">+24%</span>
                         </div>
                     </div>
-                    <div className="flex-1 w-full bg-background group-hover:bg-background/5 transition-colors p-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={progressData}>
-                                <defs>
-                                    <linearGradient id="xpGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#7B3FE4" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#7B3FE4" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                                <XAxis dataKey="day" stroke="#6B7280" fontSize={12} axisLine={false} tickLine={false} />
-                                <YAxis stroke="#6B7280" fontSize={12} axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ background: '#1C1F2E', border: '1px solid rgba(123,63,228,0.2)', borderRadius: '12px', color: 'white' }} itemStyle={{ color: '#00E0A4' }} />
-                                <Area type="monotone" dataKey="xp" stroke="#9B6DFF" fill="url(#xpGradient)" strokeWidth={3} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="flex-1 w-full bg-background group-hover:bg-background/5 transition-colors p-4 min-h-[300px]">
+                        <div ref={chartContainerRef} className="w-full h-full" />
                     </div>
                 </div>
 

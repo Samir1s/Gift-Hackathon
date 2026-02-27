@@ -87,8 +87,8 @@ export async function getSessionStatus(sessionId) {
     return apiRequest(`/api/playground/session/${sessionId}/status`);
 }
 
-export async function getChartData(basePrice = 45000) {
-    return apiRequest(`/api/playground/chart-data?base_price=${basePrice}`);
+export async function getChartData(scenarioId = 'default') {
+    return apiRequest(`/api/playground/chart-data?scenario_id=${scenarioId}`);
 }
 
 // ── Daily Updates ─────────────────────────────────────────

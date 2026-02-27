@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Gamepad2, Newspaper, Briefcase, ChevronLeft, Settings, LogOut, Trophy } from 'lucide-react';
+import { BookOpen, Gamepad2, Newspaper, Briefcase, ChevronLeft, Settings, LogOut, Trophy, Users } from 'lucide-react';
 
 const navItems = [
     { name: 'Learn', path: '/dashboard/learn', icon: BookOpen },
     { name: 'Playgrounds', path: '/dashboard/playground', icon: Gamepad2 },
     { name: 'Daily Updates', path: '/dashboard/daily-updates', icon: Newspaper },
     { name: 'Portfolio', path: '/dashboard/portfolio', icon: Briefcase },
+    { name: 'Community', path: '/dashboard/community', icon: Users },
 ];
 
 const Sidebar = () => {

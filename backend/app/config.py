@@ -7,6 +7,7 @@ load_dotenv()
 
 class Settings(BaseSettings):
     gemini_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
     news_api_key: str = ""
     frontend_url: str = "http://localhost:5173"
 

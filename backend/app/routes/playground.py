@@ -53,6 +53,6 @@ async def end_session(session_id: str):
 
 
 @router.get("/chart-data")
-async def get_chart_data(base_price: float = 45000):
-    data = trading_engine.generate_candlestick_data(base_price)
+async def get_chart_data(scenario_id: str = "default"):
+    data = trading_engine.generate_candlestick_data(scenario_id)
     return data

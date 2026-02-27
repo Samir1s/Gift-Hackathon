@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Gamepad2, Newspaper, Briefcase } from 'lucide-react';
 
 const FEATURES = [
@@ -9,6 +10,7 @@ const FEATURES = [
 ];
 
 const FeatureShowcase = () => {
+    const navigate = useNavigate();
     return (
         <section id="features" className="relative z-10 w-full bg-background py-32 md:py-48 lg:py-60 overflow-hidden selection:bg-white selection:text-background">
 
@@ -50,7 +52,8 @@ const FeatureShowcase = () => {
                         {FEATURES.map((feat, index) => (
                             <div
                                 key={index}
-                                className="group relative aspect-square flex flex-col justify-between p-6 md:p-8 hover:bg-white transition-colors duration-200 cursor-default border-t border-white"
+                                onClick={() => navigate('/login')}
+                                className="group relative aspect-square flex flex-col justify-between p-6 md:p-8 hover:bg-white transition-colors duration-200 cursor-pointer border-t border-white"
                             >
                                 <div className="flex justify-between items-start w-full">
                                     <span className="text-[10px] md:text-xs font-mono uppercase tracking-widest text-white/50 group-hover:text-background/50">
